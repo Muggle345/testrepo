@@ -656,6 +656,14 @@ void setMemoryAlloc(std::string alloc) {
     memoryAlloc = alloc;
 }
 
+bool getPSNSignedIn() {
+    return isPSNSignedIn;
+}
+
+void setPSNSignedIn(bool sign) {
+    isPSNSignedIn = sign;
+}
+
 void load(const std::filesystem::path& path) {
     // If the configuration file does not exist, create it and return
     std::error_code error;
