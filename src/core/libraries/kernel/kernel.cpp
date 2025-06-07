@@ -76,21 +76,21 @@ static PS4_SYSV_ABI void stack_chk_fail() {
     UNREACHABLE();
 }
 
-static thread_local s32 g_posix_errno = 0;
+static thread_local int g_posix_errno = 0;
 
-s32* PS4_SYSV_ABI __Error() {
+int* PS4_SYSV_ABI __Error() {
     return &g_posix_errno;
 }
 
-void ErrSceToPosix(s32 error) {
+void ErrSceToPosix(int error) {
     g_posix_errno = error - ORBIS_KERNEL_ERROR_UNKNOWN;
 }
 
-s32 ErrnoToSceKernelError(s32 error) {
+int ErrnoToSceKernelError(int error) {
     return error + ORBIS_KERNEL_ERROR_UNKNOWN;
 }
 
-void SetPosixErrno(s32 e) {
+void SetPosixErrno(int e) {
     // Some error numbers are different between supported OSes
     switch (e) {
     case EPERM:
@@ -132,15 +132,15 @@ void SetPosixErrno(s32 e) {
     }
 }
 
-static u64 g_mspace_atomic_id_mask = 0;
-static u64 g_mstate_table[64] = {0};
+static uint64_t g_mspace_atomic_id_mask = 0;
+static uint64_t g_mstate_table[64] = {0};
 
 struct HeapInfoInfo {
-    u64 size = sizeof(HeapInfoInfo);
-    u32 flag;
-    u32 getSegmentInfo;
-    u64* mspace_atomic_id_mask;
-    u64* mstate_table;
+    uint64_t size = sizeof(HeapInfoInfo);
+    uint32_t flag;
+    uint32_t getSegmentInfo;
+    uint64_t* mspace_atomic_id_mask;
+    uint64_t* mstate_table;
 };
 
 void PS4_SYSV_ABI sceLibcHeapGetTraceInfo(HeapInfoInfo* info) {
@@ -159,7 +159,7 @@ struct OrbisKernelUuid {
 };
 static_assert(sizeof(OrbisKernelUuid) == 0x10);
 
-s32 PS4_SYSV_ABI sceKernelUuidCreate(OrbisKernelUuid* orbisUuid) {
+int PS4_SYSV_ABI sceKernelUuidCreate(OrbisKernelUuid* orbisUuid) {
     if (!orbisUuid) {
         return ORBIS_KERNEL_ERROR_EINVAL;
     }
@@ -176,7 +176,7 @@ s32 PS4_SYSV_ABI sceKernelUuidCreate(OrbisKernelUuid* orbisUuid) {
     return ORBIS_OK;
 }
 
-s32 PS4_SYSV_ABI kernel_ioctl(s32 fd, u64 cmd, VA_ARGS) {
+int PS4_SYSV_ABI kernel_ioctl(int fd, u64 cmd, VA_ARGS) {
     auto* h = Common::Singleton<Core::FileSys::HandleTable>::Instance();
     auto* file = h->GetFile(fd);
     if (file == nullptr) {
@@ -190,7 +190,7 @@ s32 PS4_SYSV_ABI kernel_ioctl(s32 fd, u64 cmd, VA_ARGS) {
         return -1;
     }
     VA_CTX(ctx);
-    s32 result = file->device->ioctl(cmd, &ctx);
+    int result = file->device->ioctl(cmd, &ctx);
     LOG_TRACE(Lib_Kernel, "ioctl: fd = {:X} cmd = {:X} result = {}", fd, cmd, result);
     if (result < 0) {
         ErrSceToPosix(result);
@@ -204,15 +204,15 @@ const char* PS4_SYSV_ABI sceKernelGetFsSandboxRandomWord() {
     return path;
 }
 
-s32 PS4_SYSV_ABI _sigprocmask() {
+int PS4_SYSV_ABI _sigprocmask() {
     return ORBIS_OK;
 }
 
-s32 PS4_SYSV_ABI posix_getpagesize() {
+int PS4_SYSV_ABI posix_getpagesize() {
     return 16_KB;
 }
 
-s32 PS4_SYSV_ABI posix_getsockname(Libraries::Net::OrbisNetId s,
+int PS4_SYSV_ABI posix_getsockname(Libraries::Net::OrbisNetId s,
                                    Libraries::Net::OrbisNetSockaddr* addr, u32* paddrlen) {
     auto* netcall = Common::Singleton<Libraries::Net::NetInternal>::Instance();
     auto sock = netcall->FindSocket(s);
@@ -221,7 +221,7 @@ s32 PS4_SYSV_ABI posix_getsockname(Libraries::Net::OrbisNetId s,
         LOG_ERROR(Lib_Net, "socket id is invalid = {}", s);
         return -1;
     }
-    s32 returncode = sock->GetSocketAddress(addr, paddrlen);
+    int returncode = sock->GetSocketAddress(addr, paddrlen);
     if (returncode >= 0) {
         LOG_ERROR(Lib_Net, "return code : {:#x}", (u32)returncode);
         return 0;
@@ -230,19 +230,6 @@ s32 PS4_SYSV_ABI posix_getsockname(Libraries::Net::OrbisNetId s,
     LOG_ERROR(Lib_Net, "error code returned : {:#x}", (u32)returncode);
     return -1;
 }
-
-// stubbed on non-devkit consoles
-s32 PS4_SYSV_ABI sceKernelGetGPI() {
-    LOG_DEBUG(Kernel, "called");
-    return ORBIS_OK;
-}
-
-// stubbed on non-devkit consoles
-s32 PS4_SYSV_ABI sceKernelSetGPO() {
-    LOG_DEBUG(Kernel, "called");
-    return ORBIS_OK;
-}
-
 void RegisterKernel(Core::Loader::SymbolsResolver* sym) {
     service_thread = std::jthread{KernelServiceThread};
 
@@ -290,9 +277,6 @@ void RegisterKernel(Core::Loader::SymbolsResolver* sym) {
     LIB_FUNCTION("3e+4Iv7IJ8U", "libScePosix", 1, "libkernel", 1, 1, Libraries::Net::sys_accept);
     LIB_FUNCTION("aNeavPDNKzA", "libScePosix", 1, "libkernel", 1, 1, Libraries::Net::sys_sendmsg);
     LIB_FUNCTION("pxnCmagrtao", "libScePosix", 1, "libkernel", 1, 1, Libraries::Net::sys_listen);
-
-    LIB_FUNCTION("4oXYe9Xmk0Q", "libkernel", 1, "libkernel", 1, 1, sceKernelGetGPI);
-    LIB_FUNCTION("ca7v6Cxulzs", "libkernel", 1, "libkernel", 1, 1, sceKernelSetGPO);
 }
 
 } // namespace Libraries::Kernel
