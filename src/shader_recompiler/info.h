@@ -3,7 +3,6 @@
 #pragma once
 
 #include <span>
-#include <variant>
 #include <vector>
 #include <boost/container/small_vector.hpp>
 #include <boost/container/static_vector.hpp>
@@ -92,14 +91,10 @@ struct ImageResource {
 using ImageResourceList = boost::container::small_vector<ImageResource, NumImages>;
 
 struct SamplerResource {
-    std::variant<u32, AmdGpu::Sampler> sampler;
+    u32 sharp_idx;
+    AmdGpu::Sampler inline_sampler{};
     u32 associated_image : 4;
     u32 disable_aniso : 1;
-
-    SamplerResource(u32 sharp_idx, u32 associated_image_, bool disable_aniso_)
-        : sampler{sharp_idx}, associated_image{associated_image_}, disable_aniso{disable_aniso_} {}
-    SamplerResource(AmdGpu::Sampler sampler_)
-        : sampler{sampler_}, associated_image{0}, disable_aniso(0) {}
 
     constexpr AmdGpu::Sampler GetSharp(const Info& info) const noexcept;
 };
@@ -215,12 +210,11 @@ struct Info {
     bool has_image_query{};
     bool has_perspective_interp{};
     bool has_linear_interp{};
-    bool uses_buffer_atomic_float_min_max{};
-    bool uses_image_atomic_float_min_max{};
+    bool uses_atomic_float_min_max{};
     bool uses_lane_id{};
     bool uses_group_quad{};
     bool uses_group_ballot{};
-    IR::Type shared_types{};
+    bool uses_shared{};
     bool uses_fp16{};
     bool uses_fp64{};
     bool uses_pack_10_11_11{};
@@ -308,27 +302,23 @@ constexpr AmdGpu::Image ImageResource::GetSharp(const Info& info) const noexcept
     if (!is_r128) {
         image = info.ReadUdSharp<AmdGpu::Image>(sharp_idx);
     } else {
-        const auto buf = info.ReadUdSharp<AmdGpu::Buffer>(sharp_idx);
+        AmdGpu::Buffer buf = info.ReadUdSharp<AmdGpu::Buffer>(sharp_idx);
         memcpy(&image, &buf, sizeof(buf));
     }
     if (!image.Valid()) {
         // Fall back to null image if unbound.
-        LOG_DEBUG(Render_Vulkan, "Encountered unbound image!");
-        image = is_depth ? AmdGpu::Image::NullDepth() : AmdGpu::Image::Null();
-    } else if (is_depth) {
-        const auto data_fmt = image.GetDataFmt();
-        if (data_fmt != AmdGpu::DataFormat::Format16 && data_fmt != AmdGpu::DataFormat::Format32) {
-            LOG_DEBUG(Render_Vulkan, "Encountered non-depth image used with depth instruction!");
-            image = AmdGpu::Image::NullDepth();
-        }
+        return AmdGpu::Image::Null();
+    }
+    const auto data_fmt = image.GetDataFmt();
+    if (is_depth && data_fmt != AmdGpu::DataFormat::Format16 &&
+        data_fmt != AmdGpu::DataFormat::Format32) {
+        return AmdGpu::Image::NullDepth();
     }
     return image;
 }
 
 constexpr AmdGpu::Sampler SamplerResource::GetSharp(const Info& info) const noexcept {
-    return std::holds_alternative<AmdGpu::Sampler>(sampler)
-               ? std::get<AmdGpu::Sampler>(sampler)
-               : info.ReadUdSharp<AmdGpu::Sampler>(std::get<u32>(sampler));
+    return inline_sampler ? inline_sampler : info.ReadUdSharp<AmdGpu::Sampler>(sharp_idx);
 }
 
 constexpr AmdGpu::Image FMaskResource::GetSharp(const Info& info) const noexcept {

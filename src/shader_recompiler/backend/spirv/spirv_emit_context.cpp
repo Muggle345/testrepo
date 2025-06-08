@@ -146,7 +146,6 @@ void EmitContext::DefineArithmeticTypes() {
     false_value = ConstantFalse(U1[1]);
     u8_one_value = Constant(U8, 1U);
     u8_zero_value = Constant(U8, 0U);
-    u16_zero_value = Constant(U16, 0U);
     u32_one_value = ConstU32(1U);
     u32_zero_value = ConstU32(0U);
     f32_zero_value = ConstF32(0.0f);
@@ -286,8 +285,6 @@ void EmitContext::DefineBufferProperties() {
             Name(buffer.size_shorts, fmt::format("buf{}_short_size", binding));
             buffer.size_dwords = OpShiftRightLogical(U32[1], buffer.size, ConstU32(2U));
             Name(buffer.size_dwords, fmt::format("buf{}_dword_size", binding));
-            buffer.size_qwords = OpShiftRightLogical(U32[1], buffer.size, ConstU32(3U));
-            Name(buffer.size_qwords, fmt::format("buf{}_qword_size", binding));
         }
     }
 }
@@ -299,7 +296,8 @@ void EmitContext::DefineInterpolatedAttribs() {
     // Iterate all input attributes, load them and manually interpolate.
     for (s32 i = 0; i < runtime_info.fs_info.num_inputs; i++) {
         const auto& input = runtime_info.fs_info.inputs[i];
-        auto& params = input_params[i];
+        const u32 semantic = input.param_index;
+        auto& params = input_params[semantic];
         if (input.is_flat || params.is_loaded) {
             continue;
         }
@@ -317,7 +315,7 @@ void EmitContext::DefineInterpolatedAttribs() {
         const Id p10_y{OpVectorTimesScalar(F32[4], p10, bary_coord_y)};
         const Id p20_z{OpVectorTimesScalar(F32[4], p20, bary_coord_z)};
         params.id = OpFAdd(F32[4], p0, OpFAdd(F32[4], p10_y, p20_z));
-        Name(params.id, fmt::format("fs_in_attr{}", i));
+        Name(params.id, fmt::format("fs_in_attr{}", semantic));
         params.is_loaded = true;
     }
 }
@@ -426,28 +424,25 @@ void EmitContext::DefineInputs() {
         }
         for (s32 i = 0; i < runtime_info.fs_info.num_inputs; i++) {
             const auto& input = runtime_info.fs_info.inputs[i];
+            const u32 semantic = input.param_index;
+            ASSERT(semantic < IR::NumParams);
             if (input.IsDefault()) {
-                input_params[i] = {
-                    .id = MakeDefaultValue(*this, input.default_value),
-                    .pointer_type = input_f32,
-                    .component_type = F32[1],
-                    .num_components = 4,
-                    .is_integer = false,
-                    .is_loaded = true,
+                input_params[semantic] = {
+                    MakeDefaultValue(*this, input.default_value), input_f32, F32[1], 4, false, true,
                 };
                 continue;
             }
-            const IR::Attribute param{IR::Attribute::Param0 + i};
+            const IR::Attribute param{IR::Attribute::Param0 + input.param_index};
             const u32 num_components = info.loads.NumComponents(param);
             const Id type{F32[num_components]};
             Id attr_id{};
             if (profile.needs_manual_interpolation && !input.is_flat) {
-                attr_id = DefineInput(TypeArray(type, ConstU32(3U)), input.param_index);
+                attr_id = DefineInput(TypeArray(type, ConstU32(3U)), semantic);
                 Decorate(attr_id, spv::Decoration::PerVertexKHR);
-                Name(attr_id, fmt::format("fs_in_attr{}_p", i));
+                Name(attr_id, fmt::format("fs_in_attr{}_p", semantic));
             } else {
-                attr_id = DefineInput(type, input.param_index);
-                Name(attr_id, fmt::format("fs_in_attr{}", i));
+                attr_id = DefineInput(type, semantic);
+                Name(attr_id, fmt::format("fs_in_attr{}", semantic));
 
                 if (input.is_flat) {
                     Decorate(attr_id, spv::Decoration::Flat);
@@ -455,7 +450,7 @@ void EmitContext::DefineInputs() {
                     Decorate(attr_id, spv::Decoration::NoPerspective);
                 }
             }
-            input_params[i] =
+            input_params[semantic] =
                 GetAttributeInfo(AmdGpu::NumberFormat::Float, attr_id, num_components, false);
         }
         break;
@@ -972,65 +967,25 @@ void EmitContext::DefineImagesAndSamplers() {
         const Id id{AddGlobalVariable(sampler_pointer_type, spv::StorageClass::UniformConstant)};
         Decorate(id, spv::Decoration::Binding, binding.unified++);
         Decorate(id, spv::Decoration::DescriptorSet, 0U);
-        auto sharp_desc = std::holds_alternative<u32>(samp_desc.sampler)
-                              ? fmt::format("sgpr:{}", std::get<u32>(samp_desc.sampler))
-                              : fmt::format("inline:{:#x}:{:#x}",
-                                            std::get<AmdGpu::Sampler>(samp_desc.sampler).raw0,
-                                            std::get<AmdGpu::Sampler>(samp_desc.sampler).raw1);
-        Name(id, fmt::format("{}_{}{}", stage, "samp", sharp_desc));
+        Name(id, fmt::format("{}_{}{}", stage, "samp", samp_desc.sharp_idx));
         samplers.push_back(id);
         interfaces.push_back(id);
     }
 }
 
 void EmitContext::DefineSharedMemory() {
-    const auto num_types = std::popcount(static_cast<u32>(info.shared_types));
-    if (num_types == 0) {
+    if (!info.uses_shared) {
         return;
     }
     ASSERT(info.stage == Stage::Compute);
     const u32 shared_memory_size = runtime_info.cs_info.shared_memory_size;
-
-    const auto make_type = [&](IR::Type type, Id element_type, u32 element_size,
-                               std::string_view name) {
-        if (False(info.shared_types & type)) {
-            // Skip unused shared memory types.
-            return std::make_tuple(Id{}, Id{}, Id{});
-        }
-
-        const u32 num_elements{Common::DivCeil(shared_memory_size, element_size)};
-        const Id array_type{TypeArray(element_type, ConstU32(num_elements))};
-
-        const auto mem_type = [&] {
-            if (num_types > 1) {
-                const Id struct_type{TypeStruct(array_type)};
-                Decorate(struct_type, spv::Decoration::Block);
-                MemberDecorate(struct_type, 0u, spv::Decoration::Offset, 0u);
-                return struct_type;
-            } else {
-                return array_type;
-            }
-        }();
-
-        const Id pointer = TypePointer(spv::StorageClass::Workgroup, mem_type);
-        const Id element_pointer = TypePointer(spv::StorageClass::Workgroup, element_type);
-        const Id variable = AddGlobalVariable(pointer, spv::StorageClass::Workgroup);
-        Name(variable, name);
-        interfaces.push_back(variable);
-
-        if (num_types > 1) {
-            Decorate(array_type, spv::Decoration::ArrayStride, element_size);
-            Decorate(variable, spv::Decoration::Aliased);
-        }
-
-        return std::make_tuple(variable, element_pointer, pointer);
-    };
-    std::tie(shared_memory_u16, shared_u16, shared_memory_u16_type) =
-        make_type(IR::Type::U16, U16, 2u, "shared_mem_u16");
-    std::tie(shared_memory_u32, shared_u32, shared_memory_u32_type) =
-        make_type(IR::Type::U32, U32[1], 4u, "shared_mem_u32");
-    std::tie(shared_memory_u64, shared_u64, shared_memory_u64_type) =
-        make_type(IR::Type::U64, U64, 8u, "shared_mem_u64");
+    const u32 num_elements{Common::DivCeil(shared_memory_size, 4U)};
+    const Id type{TypeArray(U32[1], ConstU32(num_elements))};
+    shared_memory_u32_type = TypePointer(spv::StorageClass::Workgroup, type);
+    shared_u32 = TypePointer(spv::StorageClass::Workgroup, U32[1]);
+    shared_memory_u32 = AddGlobalVariable(shared_memory_u32_type, spv::StorageClass::Workgroup);
+    Name(shared_memory_u32, "shared_mem");
+    interfaces.push_back(shared_memory_u32);
 }
 
 Id EmitContext::DefineFloat32ToUfloatM5(u32 mantissa_bits, const std::string_view name) {
