@@ -8,6 +8,7 @@
 #include "common/debug.h"
 #include "video_core/buffer_cache/buffer_cache.h"
 #include "video_core/page_manager.h"
+#include "video_core/renderer_vulkan/liverpool_to_vk.h"
 #include "video_core/renderer_vulkan/vk_instance.h"
 #include "video_core/renderer_vulkan/vk_scheduler.h"
 #include "video_core/texture_cache/host_compatibility.h"
@@ -22,7 +23,7 @@ static constexpr u64 NumFramesBeforeRemoval = 32;
 TextureCache::TextureCache(const Vulkan::Instance& instance_, Vulkan::Scheduler& scheduler_,
                            BufferCache& buffer_cache_, PageManager& tracker_)
     : instance{instance_}, scheduler{scheduler_}, buffer_cache{buffer_cache_}, tracker{tracker_},
-      blit_helper{instance, scheduler}, tile_manager{instance, scheduler} {
+      tile_manager{instance, scheduler} {
     // Create basic null image at fixed image ID.
     const auto null_id = GetNullImage(vk::Format::eR8G8B8A8Unorm);
     ASSERT(null_id.index == NULL_IMAGE_ID.index);
@@ -125,7 +126,7 @@ void TextureCache::UnmapMemory(VAddr cpu_addr, size_t size) {
 
 ImageId TextureCache::ResolveDepthOverlap(const ImageInfo& requested_info, BindingType binding,
                                           ImageId cache_image_id) {
-    auto& cache_image = slot_images[cache_image_id];
+    const auto& cache_image = slot_images[cache_image_id];
 
     if (!cache_image.info.IsDepthStencil() && !requested_info.IsDepthStencil()) {
         return {};
@@ -168,31 +169,18 @@ ImageId TextureCache::ResolveDepthOverlap(const ImageInfo& requested_info, Bindi
     }
 
     if (recreate) {
-        auto new_info = requested_info;
-        new_info.resources = std::min(requested_info.resources, cache_image.info.resources);
+        auto new_info{requested_info};
+        new_info.resources = std::max(requested_info.resources, cache_image.info.resources);
+        new_info.UpdateSize();
         const auto new_image_id = slot_images.insert(instance, scheduler, new_info);
         RegisterImage(new_image_id);
 
         // Inherit image usage
-        auto& new_image = slot_images[new_image_id];
+        auto& new_image = GetImage(new_image_id);
         new_image.usage = cache_image.usage;
-        new_image.flags &= ~ImageFlagBits::Dirty;
-        // When creating a depth buffer through overlap resolution don't clear it on first use.
-        new_image.info.meta_info.htile_clear_mask = 0;
 
-        if (cache_image.info.num_samples == 1 && new_info.num_samples == 1) {
-            // Perform depth<->color copy using the intermediate copy buffer.
-            const auto& copy_buffer = buffer_cache.GetUtilityBuffer(MemoryUsage::DeviceLocal);
-            new_image.CopyImageWithBuffer(cache_image, copy_buffer.Handle(), 0);
-        } else if (cache_image.info.num_samples == 1 && new_info.IsDepthStencil() &&
-                   new_info.num_samples > 1) {
-            // Perform a rendering pass to transfer the channels of source as samples in dest.
-            blit_helper.BlitColorToMsDepth(cache_image, new_image);
-        } else {
-            LOG_WARNING(Render_Vulkan, "Unimplemented depth overlap copy");
-        }
+        // TODO: perform a depth copy here
 
-        // Free the cache image.
         FreeImage(cache_image_id);
         return new_image_id;
     }
@@ -212,8 +200,7 @@ std::tuple<ImageId, int, int> TextureCache::ResolveOverlap(const ImageInfo& imag
 
     if (image_info.guest_address == tex_cache_image.info.guest_address) { // Equal address
         if (image_info.BlockDim() != tex_cache_image.info.BlockDim() ||
-            image_info.num_bits * image_info.num_samples !=
-                tex_cache_image.info.num_bits * tex_cache_image.info.num_samples) {
+            image_info.num_bits != tex_cache_image.info.num_bits) {
             // Very likely this kind of overlap is caused by allocation from a pool.
             if (safe_to_delete) {
                 FreeImage(cache_image_id);
@@ -474,17 +461,15 @@ ImageView& TextureCache::FindDepthTarget(BaseDesc& desc) {
     const ImageId image_id = FindImage(desc);
     Image& image = slot_images[image_id];
     image.flags |= ImageFlagBits::GpuModified;
+    image.flags &= ~ImageFlagBits::Dirty;
     image.usage.depth_target = 1u;
     image.usage.stencil = image.info.HasStencil();
-    UpdateImage(image_id);
 
     // Register meta data for this depth buffer
     if (!(image.flags & ImageFlagBits::MetaRegistered)) {
         if (desc.info.meta_info.htile_addr) {
-            surface_metas.emplace(
-                desc.info.meta_info.htile_addr,
-                MetaDataInfo{.type = MetaDataInfo::Type::HTile,
-                             .clear_mask = image.info.meta_info.htile_clear_mask});
+            surface_metas.emplace(desc.info.meta_info.htile_addr,
+                                  MetaDataInfo{.type = MetaDataInfo::Type::HTile});
             image.info.meta_info.htile_addr = desc.info.meta_info.htile_addr;
             image.flags |= ImageFlagBits::MetaRegistered;
         }
@@ -545,12 +530,7 @@ void TextureCache::RefreshImage(Image& image, Vulkan::Scheduler* custom_schedule
 
     const auto& num_layers = image.info.resources.layers;
     const auto& num_mips = image.info.resources.levels;
-    // ASSERT(num_mips == image.info.mips_layout.size());
-
-    if (num_mips != image.info.mips_layout.size()) {
-        LOG_WARNING(Render_Vulkan, "Unexpected inequality: num_mips = {}, mips layout size = {}",
-                    num_mips, image.info.mips_layout.size());
-    }
+    ASSERT(num_mips == image.info.mips_layout.size());
 
     const bool is_gpu_modified = True(image.flags & ImageFlagBits::GpuModified);
     const bool is_gpu_dirty = True(image.flags & ImageFlagBits::GpuDirty);
@@ -604,11 +584,12 @@ void TextureCache::RefreshImage(Image& image, Vulkan::Scheduler* custom_schedule
 
     const VAddr image_addr = image.info.guest_address;
     const size_t image_size = image.info.guest_size;
-    const auto [vk_buffer, buf_offset] = buffer_cache.ObtainBufferForImage(image_addr, image_size);
+    const auto [vk_buffer, buf_offset] =
+        buffer_cache.ObtainViewBuffer(image_addr, image_size, is_gpu_dirty);
 
     const auto cmdbuf = sched_ptr->CommandBuffer();
-
-    // The obtained buffer may be GPU modified so we need to emit a barrier to prevent RAW hazard
+    // The obtained buffer may be written by a shader so we need to emit a barrier to prevent RAW
+    // hazard
     if (auto barrier = vk_buffer->GetBarrier(vk::AccessFlagBits2::eTransferRead,
                                              vk::PipelineStageFlagBits2::eTransfer)) {
         cmdbuf.pipelineBarrier2(vk::DependencyInfo{
