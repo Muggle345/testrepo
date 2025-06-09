@@ -74,7 +74,6 @@ Liverpool::~Liverpool() {
 
 void Liverpool::Process(std::stop_token stoken) {
     Common::SetCurrentThreadName("shadPS4:GpuCommandProcessor");
-    gpu_id = std::this_thread::get_id();
 
     while (!stoken.stop_requested()) {
         {
@@ -233,11 +232,8 @@ Liverpool::Task Liverpool::ProcessGraphics(std::span<const u32> dcb, std::span<c
             UNREACHABLE_MSG("Wrong PM4 type {}", type);
             break;
         case 0:
-            LOG_ERROR(Lib_GnmDriver, "Continue hack Unsupported PM4 type 0");
-            dcb = NextPacket(dcb, header->type0.NumWords() + 1);
-            continue;
-        case 1:
-            UNREACHABLE_MSG("Unsupported PM4 type {}", type);
+            UNREACHABLE_MSG("Unimplemented PM4 type 0, base reg: {}, size: {}",
+                            header->type0.base.Value(), header->type0.NumWords());
             break;
         case 2:
             // Type-2 packet are used for padding purposes
@@ -642,25 +638,25 @@ Liverpool::Task Liverpool::ProcessGraphics(std::span<const u32> dcb, std::span<c
                 } else if ((dma_data->src_sel == DmaDataSrc::Memory ||
                             dma_data->src_sel == DmaDataSrc::MemoryUsingL2) &&
                            dma_data->dst_sel == DmaDataDst::Gds) {
-                    if (Config::getParticlesEnabled())
-                        rasterizer->CopyBuffer(dma_data->dst_addr_lo, dma_data->SrcAddress<VAddr>(),
-                                               dma_data->NumBytes(), true, false);
+                    rasterizer->InlineData(dma_data->dst_addr_lo,
+                                           dma_data->SrcAddress<const void*>(),
+                                           dma_data->NumBytes(), true);
                 } else if (dma_data->src_sel == DmaDataSrc::Data &&
                            (dma_data->dst_sel == DmaDataDst::Memory ||
                             dma_data->dst_sel == DmaDataDst::MemoryUsingL2)) {
                     rasterizer->InlineData(dma_data->DstAddress<VAddr>(), &dma_data->data,
                                            sizeof(u32), false);
                 } else if (dma_data->src_sel == DmaDataSrc::Gds &&
-                           dma_data->dst_sel == DmaDataDst::Memory) {
-                    if (Config::getParticlesEnabled())
-                        rasterizer->CopyBuffer(dma_data->DstAddress<VAddr>(), dma_data->src_addr_lo,
-                                               dma_data->NumBytes(), false, true);
-                } else if (dma_data->src_sel == DmaDataSrc::Memory &&
-                           dma_data->dst_sel == DmaDataDst::Memory) {
-                    if (Config::getParticlesEnabled())
-                        rasterizer->CopyBuffer(dma_data->DstAddress<VAddr>(),
-                                               dma_data->SrcAddress<VAddr>(),
-                                               dma_data->NumBytes() - 2, false, false);
+                           (dma_data->dst_sel == DmaDataDst::Memory ||
+                            dma_data->dst_sel == DmaDataDst::MemoryUsingL2)) {
+                    // LOG_WARNING(Render_Vulkan, "GDS memory read");
+                } else if ((dma_data->src_sel == DmaDataSrc::Memory ||
+                            dma_data->src_sel == DmaDataSrc::MemoryUsingL2) &&
+                           (dma_data->dst_sel == DmaDataDst::Memory ||
+                            dma_data->dst_sel == DmaDataDst::MemoryUsingL2)) {
+                    rasterizer->InlineData(dma_data->DstAddress<VAddr>(),
+                                           dma_data->SrcAddress<const void*>(),
+                                           dma_data->NumBytes(), false);
                 } else {
                     UNREACHABLE_MSG("WriteData src_sel = {}, dst_sel = {}",
                                     u32(dma_data->src_sel.Value()), u32(dma_data->dst_sel.Value()));
@@ -706,9 +702,6 @@ Liverpool::Task Liverpool::ProcessGraphics(std::span<const u32> dcb, std::span<c
                 break;
             }
             case PM4ItOpcode::Rewind: {
-                if (!rasterizer) {
-                    break;
-                }
                 const PM4CmdRewind* rewind = reinterpret_cast<const PM4CmdRewind*>(header);
                 while (!rewind->Valid()) {
                     YIELD_GFX();
@@ -789,8 +782,8 @@ Liverpool::Task Liverpool::ProcessGraphics(std::span<const u32> dcb, std::span<c
                 break;
             }
             default:
-                LOG_WARNING(Render, "Unknown PM4 type 3 opcode {:#x} with count {}",
-                            static_cast<u32>(opcode), count);
+                UNREACHABLE_MSG("Unknown PM4 type 3 opcode {:#x} with count {}",
+                                static_cast<u32>(opcode), count);
             }
             dcb = NextPacket(dcb, header->type3.NumWords() + 1);
             break;
@@ -883,25 +876,24 @@ Liverpool::Task Liverpool::ProcessCompute(const u32* acb, u32 acb_dwords, u32 vq
             } else if ((dma_data->src_sel == DmaDataSrc::Memory ||
                         dma_data->src_sel == DmaDataSrc::MemoryUsingL2) &&
                        dma_data->dst_sel == DmaDataDst::Gds) {
-                if (Config::getParticlesEnabled())
-                    rasterizer->CopyBuffer(dma_data->dst_addr_lo, dma_data->SrcAddress<VAddr>(),
-                                           dma_data->NumBytes(), true, false);
+                rasterizer->InlineData(dma_data->dst_addr_lo, dma_data->SrcAddress<const void*>(),
+                                       dma_data->NumBytes(), true);
             } else if (dma_data->src_sel == DmaDataSrc::Data &&
                        (dma_data->dst_sel == DmaDataDst::Memory ||
                         dma_data->dst_sel == DmaDataDst::MemoryUsingL2)) {
                 rasterizer->InlineData(dma_data->DstAddress<VAddr>(), &dma_data->data, sizeof(u32),
                                        false);
             } else if (dma_data->src_sel == DmaDataSrc::Gds &&
-                       dma_data->dst_sel == DmaDataDst::Memory) {
-                if (Config::getParticlesEnabled())
-                    rasterizer->CopyBuffer(dma_data->DstAddress<VAddr>(), dma_data->src_addr_lo,
-                                           dma_data->NumBytes(), false, true);
-            } else if (dma_data->src_sel == DmaDataSrc::Memory &&
-                       dma_data->dst_sel == DmaDataDst::Memory) {
-                if (Config::getParticlesEnabled())
-                    rasterizer->CopyBuffer(dma_data->DstAddress<VAddr>(),
-                                           dma_data->SrcAddress<VAddr>(), dma_data->NumBytes(),
-                                           false, false);
+                       (dma_data->dst_sel == DmaDataDst::Memory ||
+                        dma_data->dst_sel == DmaDataDst::MemoryUsingL2)) {
+                // LOG_WARNING(Render_Vulkan, "GDS memory read");
+            } else if ((dma_data->src_sel == DmaDataSrc::Memory ||
+                        dma_data->src_sel == DmaDataSrc::MemoryUsingL2) &&
+                       (dma_data->dst_sel == DmaDataDst::Memory ||
+                        dma_data->dst_sel == DmaDataDst::MemoryUsingL2)) {
+                rasterizer->InlineData(dma_data->DstAddress<VAddr>(),
+                                       dma_data->SrcAddress<const void*>(), dma_data->NumBytes(),
+                                       false);
             } else {
                 UNREACHABLE_MSG("WriteData src_sel = {}, dst_sel = {}",
                                 u32(dma_data->src_sel.Value()), u32(dma_data->dst_sel.Value()));
@@ -912,9 +904,6 @@ Liverpool::Task Liverpool::ProcessCompute(const u32* acb, u32 acb_dwords, u32 vq
             break;
         }
         case PM4ItOpcode::Rewind: {
-            if (!rasterizer) {
-                break;
-            }
             const PM4CmdRewind* rewind = reinterpret_cast<const PM4CmdRewind*>(header);
             while (!rewind->Valid()) {
                 YIELD_ASC(vqid);
