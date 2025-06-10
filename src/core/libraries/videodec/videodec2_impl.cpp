@@ -47,6 +47,7 @@ s32 VdecDecoder::Decode(const OrbisVideodec2InputData& inputData,
     outputInfo.isValid = false;
     outputInfo.isErrorFrame = true;
     outputInfo.pictureCount = 0;
+    outputInfo.frameFormat = 0;
 
     // Only set frameFormat if the game uses the newer struct version.
     if (outputInfo.thisSize == sizeof(OrbisVideodec2OutputInfo)) {
@@ -110,6 +111,7 @@ s32 VdecDecoder::Decode(const OrbisVideodec2InputData& inputData,
         outputInfo.frameWidth = frame->width;
         outputInfo.frameHeight = frame->height;
         outputInfo.framePitch = frame->linesize[0];
+        outputInfo.framePitchInBytes = frame->linesize[0];
         outputInfo.frameBufferSize = frameBuffer.frameBufferSize;
         outputInfo.frameBuffer = frameBuffer.frameBuffer;
 
@@ -152,6 +154,7 @@ s32 VdecDecoder::Flush(OrbisVideodec2FrameBuffer& frameBuffer,
     outputInfo.isValid = false;
     outputInfo.isErrorFrame = true;
     outputInfo.pictureCount = 0;
+    outputInfo.frameFormat = 0;
 
     // Only set frameFormat if the game uses the newer struct version.
     if (outputInfo.thisSize == sizeof(OrbisVideodec2OutputInfo)) {
@@ -188,6 +191,7 @@ s32 VdecDecoder::Flush(OrbisVideodec2FrameBuffer& frameBuffer,
         outputInfo.frameWidth = frame->width;
         outputInfo.frameHeight = frame->height;
         outputInfo.framePitch = frame->linesize[0];
+        outputInfo.framePitchInBytes = frame->linesize[0];
         outputInfo.frameBufferSize = frameBuffer.frameBufferSize;
         outputInfo.frameBuffer = frameBuffer.frameBuffer;
 
