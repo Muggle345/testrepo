@@ -32,10 +32,9 @@ public:
     int exec() override;
 
 signals:
-    void LanguageChanged(const QString& locale);
+    void LanguageChanged(const std::string& locale);
     void CompatibilityChanged();
     void BackgroundOpacityChanged(int opacity);
-    void BBB();
 
 private:
     void LoadValuesFromConfig();
@@ -46,9 +45,6 @@ private:
     void OnCursorStateChanged(s16 index);
     void closeEvent(QCloseEvent* event) override;
     void setDefaultValues();
-    void LoadFSRValues();
-    void SaveFSRValues();
-    void SetDefFSRValues();
 
     std::unique_ptr<Ui::SettingsDialog> ui;
 
@@ -60,6 +56,4 @@ private:
 
     bool is_saving = false;
     std::shared_ptr<gui_settings> m_gui_settings;
-    bool DevSettingsExists = false;
-    std::filesystem::path DevSettingsFile;
 };

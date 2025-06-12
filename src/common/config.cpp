@@ -10,6 +10,7 @@
 #include "common/config.h"
 #include "common/logging/formatter.h"
 #include "common/path_util.h"
+#include "common/scm_rev.h"
 
 namespace toml {
 template <typename TC, typename K>
@@ -41,6 +42,7 @@ static std::string logFilter;
 static std::string logType = "sync";
 static std::string userName = "shadPS4";
 static std::string chooseHomeTab;
+static std::string backButtonBehavior = "left";
 static bool useSpecialPad = false;
 static int specialPadClass = 1;
 static bool isMotionControlsEnabled = true;
@@ -72,16 +74,6 @@ static bool compatibilityData = false;
 static bool checkCompatibilityOnStartup = false;
 static std::string trophyKey;
 static bool isPSNSignedIn = false;
-std::vector<std::string> m_pkg_viewer;
-static bool readbacksEnabled = false;
-static bool particlesEnabled = true;
-static std::string memoryAlloc = "medium";
-static std::string audioBackend = "cubeb";
-static int audioVolume = 100;
-static bool separateupdatefolder = false;
-static bool isBackupSaveEnabled = false;
-static int BackupFrequency = 5;
-static int BackupNumber = 2;
 
 // Gui
 static bool load_game_size = true;
@@ -102,15 +94,6 @@ u32 m_language = 1; // english
 
 bool allowHDR() {
     return isHDRAllowed;
-}
-
-std::vector<std::string> getPkgViewer() {
-    return m_pkg_viewer;
-}
-
-void setPkgViewer(const std::vector<std::string>& pkgList) {
-    m_pkg_viewer.resize(pkgList.size());
-    m_pkg_viewer = pkgList;
 }
 
 bool GetUseUnifiedInputConfig() {
@@ -226,6 +209,10 @@ std::string getChooseHomeTab() {
     return chooseHomeTab;
 }
 
+std::string getBackButtonBehavior() {
+    return backButtonBehavior;
+}
+
 bool getUseSpecialPad() {
     return useSpecialPad;
 }
@@ -236,10 +223,6 @@ int getSpecialPadClass() {
 
 bool getIsMotionControlsEnabled() {
     return isMotionControlsEnabled;
-}
-
-bool getSeparateUpdateEnabled() {
-    return separateupdatefolder;
 }
 
 bool debugDump() {
@@ -330,26 +313,6 @@ bool getCheckCompatibilityOnStartup() {
     return checkCompatibilityOnStartup;
 }
 
-std::string getAudioBackend() {
-    return audioBackend;
-}
-
-int getAudioVolume() {
-    return audioVolume;
-}
-
-bool getBackupSaveEnabled() {
-    return isBackupSaveEnabled;
-}
-
-int getBackupFrequency() {
-    return BackupFrequency;
-}
-
-int getBackupNumber() {
-    return BackupNumber;
-}
-
 void setGpuId(s32 selectedGpuId) {
     gpuId = selectedGpuId;
 }
@@ -426,10 +389,6 @@ void setEnableDiscordRPC(bool enable) {
     enableDiscordRPC = enable;
 }
 
-void setSeparateUpdateEnabled(bool use) {
-    separateupdatefolder = use;
-}
-
 void setCursorState(s16 newCursorState) {
     cursorState = newCursorState;
 }
@@ -469,6 +428,10 @@ void setChooseHomeTab(const std::string& type) {
     chooseHomeTab = type;
 }
 
+void setBackButtonBehavior(const std::string& type) {
+    backButtonBehavior = type;
+}
+
 void setUseSpecialPad(bool use) {
     useSpecialPad = use;
 }
@@ -487,26 +450,6 @@ void setCompatibilityEnabled(bool use) {
 
 void setCheckCompatibilityOnStartup(bool use) {
     checkCompatibilityOnStartup = use;
-}
-
-void setAudioBackend(std::string backend) {
-    audioBackend = backend;
-}
-
-void setAudioVolume(int volume) {
-    audioVolume = volume;
-}
-
-void setBackupSaveEnabled(bool enable) {
-    isBackupSaveEnabled = enable;
-}
-
-void setBackupFrequency(int frequency) {
-    BackupFrequency = frequency;
-}
-
-void setBackupNumber(int number) {
-    BackupNumber = number;
 }
 
 bool addGameInstallDir(const std::filesystem::path& dir, bool enabled) {
@@ -632,38 +575,6 @@ void setPSNSignedIn(bool sign) {
     isPSNSignedIn = sign;
 }
 
-bool getReadbacksEnabled() {
-    return readbacksEnabled;
-}
-
-void setReadbacksEnabled(bool enable) {
-    readbacksEnabled = enable;
-}
-
-bool getParticlesEnabled() {
-    return particlesEnabled;
-}
-
-void setParticlesEnabled(bool enable) {
-    particlesEnabled = enable;
-}
-
-std::string getMemoryAlloc() {
-    return memoryAlloc;
-}
-
-void setMemoryAlloc(std::string alloc) {
-    memoryAlloc = alloc;
-}
-
-bool getPSNSignedIn() {
-    return isPSNSignedIn;
-}
-
-void setPSNSignedIn(bool sign) {
-    isPSNSignedIn = sign;
-}
-
 void load(const std::filesystem::path& path) {
     // If the configuration file does not exist, create it and return
     std::error_code error;
@@ -702,12 +613,6 @@ void load(const std::filesystem::path& path) {
         checkCompatibilityOnStartup =
             toml::find_or<bool>(general, "checkCompatibilityOnStartup", false);
         chooseHomeTab = toml::find_or<std::string>(general, "chooseHomeTab", "Release");
-        audioBackend = toml::find_or<std::string>(general, "backend", "cubeb");
-        audioVolume = toml::find_or<int>(general, "volume", 100);
-        separateupdatefolder = toml::find_or<bool>(general, "separateUpdateEnabled", false);
-        isBackupSaveEnabled = toml::find_or<bool>(general, "isBackupSaveEnabled", false);
-        BackupFrequency = toml::find_or<int>(general, "BackupFrequency", 5);
-        BackupNumber = toml::find_or<int>(general, "BackupNumber", 2);
     }
 
     if (data.contains("Input")) {
@@ -715,6 +620,7 @@ void load(const std::filesystem::path& path) {
 
         cursorState = toml::find_or<int>(input, "cursorState", HideCursorState::Idle);
         cursorHideTimeout = toml::find_or<int>(input, "cursorHideTimeout", 5);
+        backButtonBehavior = toml::find_or<std::string>(input, "backButtonBehavior", "left");
         useSpecialPad = toml::find_or<bool>(input, "useSpecialPad", false);
         specialPadClass = toml::find_or<int>(input, "specialPadClass", 1);
         isMotionControlsEnabled = toml::find_or<bool>(input, "isMotionControlsEnabled", true);
@@ -734,9 +640,6 @@ void load(const std::filesystem::path& path) {
         isFullscreen = toml::find_or<bool>(gpu, "Fullscreen", false);
         fullscreenMode = toml::find_or<std::string>(gpu, "FullscreenMode", "Windowed");
         isHDRAllowed = toml::find_or<bool>(gpu, "allowHDR", false);
-        readbacksEnabled = toml::find_or<bool>(gpu, "readbacksEnabled", false);
-        particlesEnabled = toml::find_or<bool>(gpu, "particlesEnabled", true);
-        memoryAlloc = toml::find_or<std::string>(gpu, "memoryAlloc", "medium");
     }
 
     if (data.contains("Vulkan")) {
@@ -765,6 +668,7 @@ void load(const std::filesystem::path& path) {
         const toml::value& gui = data.at("GUI");
 
         load_game_size = toml::find_or<bool>(gui, "loadGameSizeEnabled", true);
+        mw_themes = toml::find_or<int>(gui, "theme", 0);
 
         const auto install_dir_array =
             toml::find_or<std::vector<std::u8string>>(gui, "installDirs", {});
@@ -789,6 +693,9 @@ void load(const std::filesystem::path& path) {
         save_data_path = toml::find_fs_path_or(gui, "saveDataPath", {});
 
         settings_addon_install_dir = toml::find_fs_path_or(gui, "addonInstallDir", {});
+        m_elf_viewer = toml::find_or<std::vector<std::string>>(gui, "elfDirs", {});
+        m_recent_files = toml::find_or<std::vector<std::string>>(gui, "recentFiles", {});
+        emulator_language = toml::find_or<std::string>(gui, "emulatorLanguage", "en_US");
     }
 
     if (data.contains("Settings")) {
@@ -800,6 +707,19 @@ void load(const std::filesystem::path& path) {
     if (data.contains("Keys")) {
         const toml::value& keys = data.at("Keys");
         trophyKey = toml::find_or<std::string>(keys, "TrophyKey", "");
+    }
+
+    // Check if the loaded language is in the allowed list
+    const std::vector<std::string> allowed_languages = {
+        "ar_SA", "da_DK", "de_DE", "el_GR", "en_US", "es_ES", "fa_IR", "fi_FI",
+        "fr_FR", "hu_HU", "id_ID", "it_IT", "ja_JP", "ko_KR", "lt_LT", "nb_NO",
+        "nl_NL", "pl_PL", "pt_BR", "pt_PT", "ro_RO", "ru_RU", "sq_AL", "sv_SE",
+        "tr_TR", "uk_UA", "vi_VN", "zh_CN", "zh_TW", "ca_ES", "sr_CS"};
+
+    if (std::find(allowed_languages.begin(), allowed_languages.end(), emulator_language) ==
+        allowed_languages.end()) {
+        emulator_language = "en_US"; // Default to en_US if not in the list
+        save(path);
     }
 }
 
@@ -870,12 +790,9 @@ void save(const std::filesystem::path& path) {
     data["General"]["sideTrophy"] = isSideTrophy;
     data["General"]["compatibilityEnabled"] = compatibilityData;
     data["General"]["checkCompatibilityOnStartup"] = checkCompatibilityOnStartup;
-    data["General"]["separateUpdateEnabled"] = separateupdatefolder;
-    data["General"]["isBackupSaveEnabled"] = isBackupSaveEnabled;
-    data["General"]["BackupFrequency"] = BackupFrequency;
-    data["General"]["BackupNumber"] = BackupNumber;
     data["Input"]["cursorState"] = cursorState;
     data["Input"]["cursorHideTimeout"] = cursorHideTimeout;
+    data["Input"]["backButtonBehavior"] = backButtonBehavior;
     data["Input"]["useSpecialPad"] = useSpecialPad;
     data["Input"]["specialPadClass"] = specialPadClass;
     data["Input"]["isMotionControlsEnabled"] = isMotionControlsEnabled;
@@ -890,9 +807,6 @@ void save(const std::filesystem::path& path) {
     data["GPU"]["Fullscreen"] = isFullscreen;
     data["GPU"]["FullscreenMode"] = fullscreenMode;
     data["GPU"]["allowHDR"] = isHDRAllowed;
-    data["GPU"]["readbacksEnabled"] = readbacksEnabled;
-    data["GPU"]["particlesEnabled"] = particlesEnabled;
-    data["GPU"]["memoryAlloc"] = memoryAlloc;
     data["Vulkan"]["gpuId"] = gpuId;
     data["Vulkan"]["validation"] = vkValidation;
     data["Vulkan"]["validation_sync"] = vkValidationSync;
@@ -901,8 +815,6 @@ void save(const std::filesystem::path& path) {
     data["Vulkan"]["hostMarkers"] = vkHostMarkers;
     data["Vulkan"]["guestMarkers"] = vkGuestMarkers;
     data["Vulkan"]["rdocEnable"] = rdocEnable;
-    data["General"]["backend"] = audioBackend;
-    data["General"]["volume"] = audioVolume;
     data["Debug"]["DebugDump"] = isDebugDump;
     data["Debug"]["CollectShader"] = isShaderDebug;
     data["Debug"]["isSeparateLogFilesEnabled"] = isSeparateLogFilesEnabled;
@@ -943,7 +855,44 @@ void save(const std::filesystem::path& path) {
 
     data["GUI"]["addonInstallDir"] =
         std::string{fmt::UTF(settings_addon_install_dir.u8string()).data};
+    data["GUI"]["emulatorLanguage"] = emulator_language;
     data["Settings"]["consoleLanguage"] = m_language;
+
+    // Sorting of TOML sections
+    sortTomlSections(data);
+
+    std::ofstream file(path, std::ios::binary);
+    file << data;
+    file.close();
+
+    saveMainWindow(path);
+}
+
+void saveMainWindow(const std::filesystem::path& path) {
+    toml::ordered_value data;
+
+    std::error_code error;
+    if (std::filesystem::exists(path, error)) {
+        try {
+            std::ifstream ifs;
+            ifs.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+            ifs.open(path, std::ios_base::binary);
+            data = toml::parse<toml::ordered_type_config>(
+                ifs, std::string{fmt::UTF(path.filename().u8string()).data});
+        } catch (const std::exception& ex) {
+            fmt::print("Exception trying to parse config file. Exception: {}\n", ex.what());
+            return;
+        }
+    } else {
+        if (error) {
+            fmt::print("Filesystem error: {}\n", error.message());
+        }
+        fmt::print("Saving new configuration file {}\n", fmt::UTF(path.u8string()));
+    }
+
+    data["GUI"]["theme"] = mw_themes;
+    data["GUI"]["elfDirs"] = m_elf_viewer;
+    data["GUI"]["recentFiles"] = m_recent_files;
 
     // Sorting of TOML sections
     sortTomlSections(data);
@@ -966,14 +915,12 @@ void setDefaultValues() {
     logFilter = "";
     logType = "sync";
     userName = "shadPS4";
-    readbacksEnabled = false;
-    particlesEnabled = true;
-    memoryAlloc = "medium";
 
     chooseHomeTab = "General";
     cursorState = HideCursorState::Idle;
     cursorHideTimeout = 5;
     trophyNotificationDuration = 6.0;
+    backButtonBehavior = "left";
     useSpecialPad = false;
     specialPadClass = 1;
     isDebugDump = false;
@@ -990,16 +937,11 @@ void setDefaultValues() {
     vkHostMarkers = false;
     vkGuestMarkers = false;
     rdocEnable = false;
+    emulator_language = "en_US";
     m_language = 1;
     gpuId = -1;
     compatibilityData = false;
     checkCompatibilityOnStartup = false;
-    audioBackend = "cubeb";
-    audioVolume = 100;
-    separateupdatefolder = false;
-    isBackupSaveEnabled = false;
-    BackupFrequency = 10;
-    BackupNumber = 2;
 }
 
 constexpr std::string_view GetDefaultKeyboardConfig() {
@@ -1025,7 +967,7 @@ l3 = x
 r3 = m
 
 options = enter
-touchpad_center = space
+touchpad = space
 
 pad_up = up
 pad_down = down
@@ -1057,7 +999,7 @@ r2 = r2
 r3 = r3
 
 options = options
-touchpad_center = back
+touchpad = back
 
 pad_up = pad_up
 pad_down = pad_down
