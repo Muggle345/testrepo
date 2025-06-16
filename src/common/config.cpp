@@ -79,6 +79,7 @@ static bool compatibilityData = false;
 static bool checkCompatibilityOnStartup = false;
 static std::string trophyKey;
 static bool particlesEnabled = true;
+static std::string memoryAlloc = "medium";
 static std::string audioBackend = "cubeb";
 static bool readbacksEnabled = false;
 static int audioVolume = 100;
@@ -734,6 +735,14 @@ void setParticlesEnabled(bool enable) {
     particlesEnabled = enable;
 }
 
+std::string getMemoryAlloc() {
+    return memoryAlloc;
+}
+
+void setMemoryAlloc(std::string alloc) {
+    memoryAlloc = alloc;
+}
+
 void load(const std::filesystem::path& path) {
     // If the configuration file does not exist, create it and return
     std::error_code error;
@@ -811,6 +820,7 @@ void load(const std::filesystem::path& path) {
         isHDRAllowed = toml::find_or<bool>(gpu, "allowHDR", false);
         readbacksEnabled = toml::find_or<bool>(gpu, "readbacksEnabled", false);
         particlesEnabled = toml::find_or<bool>(gpu, "particlesEnabled", true);
+        memoryAlloc = toml::find_or<bool>(gpu, "memoryAlloc", "medium");
     }
 
     if (data.contains("Vulkan")) {
@@ -958,6 +968,7 @@ void save(const std::filesystem::path& path) {
     data["GPU"]["allowHDR"] = isHDRAllowed;
     data["GPU"]["readbacksEnabled"] = readbacksEnabled;
     data["GPU"]["particlesEnabled"] = particlesEnabled;
+    data["GPU"]["memoryAlloc"] = memoryAlloc;
     data["Vulkan"]["gpuId"] = gpuId;
     data["Vulkan"]["validation"] = vkValidation;
     data["Vulkan"]["validation_sync"] = vkValidationSync;
@@ -1059,6 +1070,7 @@ void setDefaultValues() {
     }
     readbacksEnabled = false;
     particlesEnabled = true;
+    memoryAlloc = "medium";
 
     chooseHomeTab = "General";
     cursorState = HideCursorState::Idle;

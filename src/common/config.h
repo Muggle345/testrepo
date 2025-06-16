@@ -36,6 +36,7 @@ bool getParticlesEnabled();
 std::string getAudioBackend();
 bool getReadbacksEnabled();
 int getAudioVolume();
+std::string getMemoryAlloc();
 
 std::string getLogFilter();
 std::string getLogType();
@@ -112,6 +113,7 @@ void setParticlesEnabled(bool enable);
 void setAudioBackend(std::string backend);
 void setReadbacksEnabled(bool enable);
 void setAudioVolume(int volume);
+void setMemoryAlloc(std::string alloc);
 
 void setCursorState(s16 cursorState);
 void setCursorHideTimeout(int newcursorHideTimeout);
