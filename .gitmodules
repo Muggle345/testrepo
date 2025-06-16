@@ -106,3 +106,9 @@
 [submodule "externals/libusb"]
 	path = externals/libusb
 	url = https://github.com/libusb/libusb-cmake.git
+[submodule "externals/cryptopp-cmake"]
+	path = externals/cryptopp-cmake
+	url = https://github.com/shadps4-emu/ext-cryptopp-cmake.git
+[submodule "externals/cubeb"]
+	path = externals/cubeb
+	url = https://github.com/mozilla/cubeb
