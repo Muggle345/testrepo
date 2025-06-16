@@ -59,22 +59,10 @@ bool MainWindow::Init() {
     setMinimumSize(720, 405);
     std::string window_title = "";
     if (Common::isRelease) {
-        window_title = fmt::format("shadPS4 v{}", Common::VERSION);
+        window_title = fmt::format("shadPS4 BloodborneBuild v{}", Common::VERSION);
     } else {
-        std::string remote_url(Common::g_scm_remote_url);
-        std::string remote_host;
-        try {
-            remote_host = remote_url.substr(19, remote_url.rfind('/') - 19);
-        } catch (...) {
-            remote_host = "unknown";
-        }
-        if (remote_host == "shadps4-emu" || remote_url.length() == 0) {
-            window_title = fmt::format("shadPS4 v{} {} {}", Common::VERSION, Common::g_scm_branch,
-                                       Common::g_scm_desc);
-        } else {
-            window_title = fmt::format("shadPS4 v{} {}/{} {}", Common::VERSION, remote_host,
-                                       Common::g_scm_branch, Common::g_scm_desc);
-        }
+        window_title = fmt::format("shadPS4 v{} {} | {}", Common::VERSION,
+                                       "BloodborneBuild", game_title)
     }
     setWindowTitle(QString::fromStdString(window_title));
     this->show();
