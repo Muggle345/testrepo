@@ -78,6 +78,7 @@ static bool separateupdatefolder = false;
 static bool compatibilityData = false;
 static bool checkCompatibilityOnStartup = false;
 static std::string trophyKey;
+static bool particlesEnabled = true;
 static std::string audioBackend = "cubeb";
 static bool readbacksEnabled = false;
 static int audioVolume = 100;
@@ -725,6 +726,14 @@ void setReadbacksEnabled(bool enable) {
     readbacksEnabled = enable;
 }
 
+bool getPeadbacksEnabled() {
+    return particlesEnabled;
+}
+
+void setPeadbacksEnabled(bool enable) {
+    particlesEnabled = enable;
+}
+
 void load(const std::filesystem::path& path) {
     // If the configuration file does not exist, create it and return
     std::error_code error;
@@ -801,6 +810,7 @@ void load(const std::filesystem::path& path) {
         fullscreenMode = toml::find_or<std::string>(gpu, "FullscreenMode", "Windowed");
         isHDRAllowed = toml::find_or<bool>(gpu, "allowHDR", false);
         readbacksEnabled = toml::find_or<bool>(gpu, "readbacksEnabled", false);
+        particlesEnabled = toml::find_or<bool>(gpu, "particlesEnabled", true);
     }
 
     if (data.contains("Vulkan")) {
@@ -947,6 +957,7 @@ void save(const std::filesystem::path& path) {
     data["GPU"]["FullscreenMode"] = fullscreenMode;
     data["GPU"]["allowHDR"] = isHDRAllowed;
     data["GPU"]["readbacksEnabled"] = readbacksEnabled;
+    data["GPU"]["particlesEnabled"] = particlesEnabled;
     data["Vulkan"]["gpuId"] = gpuId;
     data["Vulkan"]["validation"] = vkValidation;
     data["Vulkan"]["validation_sync"] = vkValidationSync;
@@ -1047,6 +1058,7 @@ void setDefaultValues() {
         updateChannel = "Nightly";
     }
     readbacksEnabled = false;
+    particlesEnabled = true;
 
     chooseHomeTab = "General";
     cursorState = HideCursorState::Idle;
