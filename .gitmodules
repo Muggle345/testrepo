@@ -112,3 +112,6 @@
 [submodule "externals/cubeb"]
 	path = externals/cubeb
 	url = https://github.com/mozilla/cubeb
+[submodule "externals/cryptopp"]
+	path = externals/cryptopp
+	url = https://github.com/shadps4-emu/ext-cryptopp
