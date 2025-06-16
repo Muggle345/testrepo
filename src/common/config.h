@@ -34,6 +34,7 @@ int getBackgroundImageOpacity();
 bool getShowBackgroundImage();
 std::string getAudioBackend();
 bool getReadbacksEnabled();
+int getAudioVolume();
 
 std::string getLogFilter();
 std::string getLogType();
@@ -108,6 +109,7 @@ void setBackgroundImageOpacity(int opacity);
 void setShowBackgroundImage(bool show);
 void setAudioBackend(std::string backend);
 void setReadbacksEnabled(bool enable);
+void setAudioVolume(int volume);
 
 void setCursorState(s16 cursorState);
 void setCursorHideTimeout(int newcursorHideTimeout);

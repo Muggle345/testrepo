@@ -182,6 +182,10 @@ SettingsDialog::SettingsDialog(std::span<const QString> physical_devices,
             auto checkUpdate = new CheckUpdate(true);
             checkUpdate->exec();
         });
+
+        connect(ui->VolumeSlider, &QSlider::valueChanged, this, [this](int value) {
+            ui->VolumeValue->setText(QString::number(ui->VolumeSlider->value()));
+        });
 #else
         ui->updaterGroupBox->setVisible(false);
 #endif
@@ -487,7 +491,9 @@ void SettingsDialog::LoadValuesFromConfig() {
     ui->checkCompatibilityOnStartupCheckBox->setChecked(
         toml::find_or<bool>(data, "General", "checkCompatibilityOnStartup", false));
     ui->audioBackendComboBox->setCurrentText(
-        QString::fromStdString(toml::find_or<std::string>(data, "Audio", "backend", "cubeb")));
+        QString::fromStdString(toml::find_or<std::string>(data, "General", "backend", "cubeb")));
+    ui->VolumeSlider->setValue(toml::find_or<int>(data, "General", "volume", 100));
+    ui->VolumeValue->setText(QString::number(Config::getAudioVolume()));
 
 #ifdef ENABLE_UPDATER
     ui->updateCheckBox->setChecked(toml::find_or<bool>(data, "General", "autoUpdate", false));
@@ -782,6 +788,7 @@ void SettingsDialog::UpdateSettings() {
     Config::setAutoUpdate(ui->updateCheckBox->isChecked());
     Config::setAlwaysShowChangelog(ui->changelogCheckBox->isChecked());
     Config::setUpdateChannel(channelMap.value(ui->updateComboBox->currentText()).toStdString());
+    Config::setAudioVolume(ui->VolumeSlider->value());
     Config::setChooseHomeTab(
         chooseHomeTabMap.value(ui->chooseHomeTabComboBox->currentText()).toStdString());
     Config::setCompatibilityEnabled(ui->enableCompatibilityCheckBox->isChecked());

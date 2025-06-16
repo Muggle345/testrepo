@@ -80,6 +80,7 @@ static bool checkCompatibilityOnStartup = false;
 static std::string trophyKey;
 static std::string audioBackend = "cubeb";
 static bool readbacksEnabled = false;
+static int audioVolume = 100;
 
 // Gui
 static bool load_game_size = true;
@@ -356,6 +357,10 @@ std::string getAudioBackend() {
     return audioBackend;
 }
 
+int getAudioVolume() {
+    return audioVolume;
+}
+
 void setGpuId(s32 selectedGpuId) {
     gpuId = selectedGpuId;
 }
@@ -536,6 +541,10 @@ bool addGameInstallDir(const std::filesystem::path& dir) {
         return true;
     }
     return false;
+}
+
+void setAudioVolume(int volume) {
+    audioVolume = volume;
 }
 
 void removeGameInstallDir(const std::filesystem::path& dir) {
@@ -762,6 +771,8 @@ void load(const std::filesystem::path& path) {
         checkCompatibilityOnStartup =
             toml::find_or<bool>(general, "checkCompatibilityOnStartup", false);
         chooseHomeTab = toml::find_or<std::string>(general, "chooseHomeTab", "Release");
+        audioBackend = toml::find_or<std::string>(general, "backend", "cubeb");
+        audioVolume = toml::find_or<int>(general, "volume", 100);
     }
 
     if (data.contains("Input")) {
@@ -944,7 +955,8 @@ void save(const std::filesystem::path& path) {
     data["Vulkan"]["hostMarkers"] = vkHostMarkers;
     data["Vulkan"]["guestMarkers"] = vkGuestMarkers;
     data["Vulkan"]["rdocEnable"] = rdocEnable;
-    data["Audio"]["backend"] = audioBackend;
+    data["General"]["backend"] = audioBackend;
+    data["General"]["volume"] = audioVolume;
     data["Debug"]["DebugDump"] = isDebugDump;
     data["Debug"]["CollectShader"] = isShaderDebug;
     data["Debug"]["isSeparateLogFilesEnabled"] = isSeparateLogFilesEnabled;
@@ -1068,6 +1080,7 @@ void setDefaultValues() {
     backgroundImageOpacity = 50;
     showBackgroundImage = true;
     audioBackend = "cubeb";
+    audioVolume = 100;
 }
 
 constexpr std::string_view GetDefaultKeyboardConfig() {
