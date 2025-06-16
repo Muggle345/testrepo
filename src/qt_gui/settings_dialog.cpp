@@ -433,6 +433,7 @@ void SettingsDialog::LoadValuesFromConfig() {
     ui->nullGpuCheckBox->setChecked(toml::find_or<bool>(data, "GPU", "nullGpu", false));
     ui->enableHDRCheckBox->setChecked(toml::find_or<bool>(data, "GPU", "allowHDR", false));
     ui->playBGMCheckBox->setChecked(toml::find_or<bool>(data, "General", "playBGM", false));
+    ui->ReadbacksCheckBox->setChecked(toml::find_or<bool>(data, "GPU", "readbacksEnabled", false));
     ui->disableTrophycheckBox->setChecked(
         toml::find_or<bool>(data, "General", "isTrophyPopupDisabled", false));
     ui->popUpDurationSpinBox->setValue(Config::getTrophyNotificationDuration());
@@ -765,6 +766,7 @@ void SettingsDialog::UpdateSettings() {
     Config::setDumpShaders(ui->dumpShadersCheckBox->isChecked());
     Config::setNullGpu(ui->nullGpuCheckBox->isChecked());
     Config::setSeparateUpdateEnabled(ui->separateUpdatesCheckBox->isChecked());
+    Config::setReadbacksEnabled(ui->ReadbacksCheckBox->isChecked());
     Config::setLoadGameSizeEnabled(ui->gameSizeCheckBox->isChecked());
     Config::setShowSplash(ui->showSplashCheckBox->isChecked());
     Config::setDebugDump(ui->debugDump->isChecked());
