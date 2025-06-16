@@ -726,11 +726,11 @@ void setReadbacksEnabled(bool enable) {
     readbacksEnabled = enable;
 }
 
-bool getPeadbacksEnabled() {
+bool getParticlesEnabled() {
     return particlesEnabled;
 }
 
-void setPeadbacksEnabled(bool enable) {
+void setParticlesEnabled(bool enable) {
     particlesEnabled = enable;
 }
 
