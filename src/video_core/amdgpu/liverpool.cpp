@@ -633,7 +633,7 @@ Liverpool::Task Liverpool::ProcessGraphics(std::span<const u32> dcb, std::span<c
                     if (Config::getParticlesEnabled()) {
                         rasterizer->CopyBuffer(dma_data->DstAddress<VAddr>(),
                                                dma_data->SrcAddress<VAddr>(),
-                                               dma_data->NumBytes() - 1, false, false);
+                                               dma_data->NumBytes() - 2, false, false);
                     } else {
                         rasterizer->CopyBuffer(dma_data->DstAddress<VAddr>(),
                                                dma_data->SrcAddress<VAddr>(), 0, false, false);
@@ -811,7 +811,7 @@ Liverpool::Task Liverpool::ProcessCompute(std::span<const u32> acb, u32 vqid) {
                        dma_data->dst_sel == DmaDataDst::Memory) {
                 if (Config::getParticlesEnabled()) {
                     rasterizer->CopyBuffer(dma_data->DstAddress<VAddr>(),
-                                           dma_data->SrcAddress<VAddr>(), dma_data->NumBytes() - 1,
+                                           dma_data->SrcAddress<VAddr>(), dma_data->NumBytes() - 2,
                                            false, false);
                 } else {
                     rasterizer->CopyBuffer(dma_data->DstAddress<VAddr>(),
