@@ -676,6 +676,7 @@ void MainWindow::StartGame() {
             return;
         }
         StartEmulator(path);
+        this->setVisible(false);
     }
 }
 

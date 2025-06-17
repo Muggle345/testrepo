@@ -95,11 +95,14 @@ TrophyUI::TrophyUI(const std::filesystem::path& trophyIconPath, const std::strin
     QString musicPathWav = QString::fromStdString(CustomTrophy_Dir.string() + "/trophy.wav");
     QString musicPathMp3 = QString::fromStdString(CustomTrophy_Dir.string() + "/trophy.mp3");
     if (fs::exists(musicPathWav.toStdString())) {
-        BackgroundMusicPlayer::getInstance().setVolume(100);
+        BackgroundMusicPlayer::getInstance().setVolume(Config::getAudioVolume());
         BackgroundMusicPlayer::getInstance().playMusic(musicPathWav, false);
     } else if (fs::exists(musicPathMp3.toStdString())) {
-        BackgroundMusicPlayer::getInstance().setVolume(100);
+        BackgroundMusicPlayer::getInstance().setVolume(Config::getAudioVolume());
         BackgroundMusicPlayer::getInstance().playMusic(musicPathMp3, false);
+    } else {
+        BackgroundMusicPlayer::getInstance().setVolume(Config::getAudioVolume());
+        BackgroundMusicPlayer::getInstance().playTrophySound();
     }
 #endif
 }
