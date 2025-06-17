@@ -103,7 +103,7 @@ TrophyUI::TrophyUI(const std::filesystem::path& trophyIconPath, const std::strin
             BackgroundMusicPlayer::getInstance().setVolume(Config::getAudioVolume());
             BackgroundMusicPlayer::getInstance().playMusic(musicPathMp3, false);
         } else {
-            int vol = std::min(100, (Config::getAudioVolume() + 10));
+            int vol = std::clamp(0, 100, (Config::getAudioVolume() + 25));
             BackgroundMusicPlayer::getInstance().setVolume(vol);
             BackgroundMusicPlayer::getInstance().playTrophySound();
         }
