@@ -43,6 +43,10 @@ private:
     void OnLanguageChanged(int index);
     void OnCursorStateChanged(s16 index);
     void closeEvent(QCloseEvent* event) override;
+    void setDefaultValues();
+    void LoadFSRValues();
+    void SaveFSRValues();
+    void SetDefFSRValues();
 
     std::unique_ptr<Ui::SettingsDialog> ui;
 
@@ -53,4 +57,6 @@ private:
     int initialHeight;
 
     bool is_saving = false;
+    bool DevSettingsExists = false;
+    std::filesystem::path DevSettingsFile;
 };

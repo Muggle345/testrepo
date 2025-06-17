@@ -111,6 +111,14 @@ SettingsDialog::SettingsDialog(std::span<const QString> physical_devices,
     ui->backButtonBehaviorComboBox->addItem(tr("None"), "none");
 
     InitializeEmulatorLanguages();
+    if (!std::filesystem::exists(Common::FS::GetUserPath(Common::FS::PathType::UserDir) /
+                                 "imgui.ini")) {
+        ui->FSRGroupBox->setVisible(false);
+    } else {
+        ui->FSRLabel->setVisible(false);
+        DevSettingsFile = Common::FS::GetUserPath(Common::FS::PathType::UserDir) / "imgui.ini";
+        DevSettingsExists = true;
+    }
     LoadValuesFromConfig();
 
     defaultTextEdit = tr("Point your mouse at an option to display its description.");
@@ -124,13 +132,21 @@ SettingsDialog::SettingsDialog(std::span<const QString> physical_devices,
                     is_saving = true;
                     UpdateSettings();
                     Config::save(config_dir / "config.toml");
+                    if (DevSettingsExists)
+                        SaveFSRValues();
                     QWidget::close();
                 } else if (button == ui->buttonBox->button(QDialogButtonBox::Apply)) {
                     UpdateSettings();
                     Config::save(config_dir / "config.toml");
+                    if (DevSettingsExists)
+                        SaveFSRValues();
                 } else if (button == ui->buttonBox->button(QDialogButtonBox::RestoreDefaults)) {
                     Config::setDefaultValues();
                     Config::save(config_dir / "config.toml");
+                    if (DevSettingsExists) {
+                        SetDefFSRValues();
+                        SaveFSRValues();
+                    }
                     LoadValuesFromConfig();
                 } else if (button == ui->buttonBox->button(QDialogButtonBox::Close)) {
                     ui->backgroundImageOpacitySlider->setValue(backgroundImageOpacitySlider_backup);
@@ -313,6 +329,14 @@ SettingsDialog::SettingsDialog(std::span<const QString> physical_devices,
             Common::FS::PathToQString(userPath,
                                       Common::FS::GetUserPath(Common::FS::PathType::LogDir));
             QDesktopServices::openUrl(QUrl::fromLocalFile(userPath));
+        });
+    }
+
+    // BB BUILD TAB
+    {
+        connect(ui->RCASSlider, &QSlider::valueChanged, this, [this](int value) {
+            QString RCASValue = QString::number(value / 1000.0, 'f', 3);
+            ui->RCASValue->setText(RCASValue);
         });
     }
 
@@ -548,6 +572,8 @@ void SettingsDialog::LoadValuesFromConfig() {
 
     backgroundImageOpacitySlider_backup = Config::getBackgroundImageOpacity();
     bgm_volume_backup = Config::getBGMvolume();
+    if (DevSettingsExists)
+        LoadFSRValues();
 }
 
 void SettingsDialog::InitializeEmulatorLanguages() {
@@ -870,4 +896,83 @@ void SettingsDialog::ResetInstallFolders() {
         }
         Config::setGameInstallDirs(settings_install_dirs_config);
     }
+}
+
+void SettingsDialog::SetDefFSRValues() {
+    ui->FSRCheckBox->setChecked(true);
+    ui->RCASCheckBox->setChecked(true);
+    ui->RCASSlider->setValue(250);
+}
+
+void SettingsDialog::LoadFSRValues() {
+    std::fstream file(DevSettingsFile);
+    std::string line;
+    std::vector<std::string> lines;
+    int lineCount = 0;
+    int FSRVal;
+    int RCASVal;
+    float RCASAtenVal;
+
+    while (std::getline(file, line)) {
+        lineCount++;
+
+        if (line.contains("fsr_enabled")) {
+            std::string FSREnabledString(1, line.back());
+            FSRVal = std::stoi(FSREnabledString);
+        }
+
+        if (line.contains("fsr_rcas_enabled")) {
+            std::string RCASEnabledString(1, line.back());
+            RCASVal = std::stoi(RCASEnabledString);
+        }
+
+        if (line.contains("fsr_rcas_attenuation")) {
+            std::size_t equal_pos = line.find('=');
+            std::string RCASAtenString(line.substr(equal_pos + 1));
+            RCASAtenVal = std::stof(RCASAtenString);
+        }
+    }
+    file.close();
+
+    ui->FSRCheckBox->setChecked((FSRVal == 1 ? true : false));
+    ui->RCASCheckBox->setChecked((RCASVal == 1 ? true : false));
+    ui->RCASSlider->setValue(round(RCASAtenVal * 1000));
+
+    QString RCASValue = QString::number(RCASAtenVal, 'f', 3);
+    ui->RCASValue->setText(RCASValue);
+}
+
+void SettingsDialog::SaveFSRValues() {
+    std::ifstream file(DevSettingsFile);
+    std::string line;
+    std::vector<std::string> lines;
+    int lineCount = 0;
+
+    while (std::getline(file, line)) {
+        lineCount++;
+
+        if (line.contains("fsr_enabled")) {
+            std::string FSRVal = ui->FSRCheckBox->isChecked() ? "1" : "0";
+            line = "fsr_enabled=" + FSRVal;
+        }
+
+        if (line.contains("fsr_rcas_enabled")) {
+            std::string RCASVal = ui->RCASCheckBox->isChecked() ? "1" : "0";
+            line = "fsr_rcas_enabled=" + RCASVal;
+        }
+
+        if (line.contains("fsr_rcas_attenuation")) {
+            float RCASAtenVal = ui->RCASSlider->value() / 1000.0;
+            line = "fsr_rcas_attenuation=" + std::to_string(RCASAtenVal);
+        }
+
+        lines.push_back(line);
+    }
+    file.close();
+
+    std::ofstream output_file(DevSettingsFile);
+    for (auto const& line : lines) {
+        output_file << line << '\n';
+    }
+    output_file.close();
 }
