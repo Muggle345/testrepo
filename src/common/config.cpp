@@ -83,6 +83,9 @@ static std::string memoryAlloc = "medium";
 static std::string audioBackend = "cubeb";
 static bool readbacksEnabled = false;
 static int audioVolume = 100;
+static bool isBackupSaveEnabled = false;
+static int BackupFrequency = 5;
+static int BackupNumber = 2;
 
 // Gui
 static bool load_game_size = true;
@@ -363,6 +366,18 @@ int getAudioVolume() {
     return audioVolume;
 }
 
+bool getBackupSaveEnabled() {
+    return isBackupSaveEnabled;
+}
+
+int getBackupFrequency() {
+    return BackupFrequency;
+}
+
+int getBackupNumber() {
+    return BackupNumber;
+}
+
 void setGpuId(s32 selectedGpuId) {
     gpuId = selectedGpuId;
 }
@@ -547,6 +562,18 @@ bool addGameInstallDir(const std::filesystem::path& dir) {
 
 void setAudioVolume(int volume) {
     audioVolume = volume;
+}
+
+void setBackupSaveEnabled(bool enable) {
+    isBackupSaveEnabled = enable;
+}
+
+void setBackupFrequency(int frequency) {
+    BackupFrequency = frequency;
+}
+
+void setBackupNumber(int number) {
+    BackupNumber = number;
 }
 
 void removeGameInstallDir(const std::filesystem::path& dir) {
@@ -791,6 +818,9 @@ void load(const std::filesystem::path& path) {
         chooseHomeTab = toml::find_or<std::string>(general, "chooseHomeTab", "Release");
         audioBackend = toml::find_or<std::string>(general, "backend", "cubeb");
         audioVolume = toml::find_or<int>(general, "volume", 100);
+        isBackupSaveEnabled = toml::find_or<bool>(general, "isBackupSaveEnabled", false);
+        BackupFrequency = toml::find_or<int>(general, "BackupFrequency", 5);
+        BackupNumber = toml::find_or<int>(general, "BackupNumber", 2);
     }
 
     if (data.contains("Input")) {
@@ -949,6 +979,9 @@ void save(const std::filesystem::path& path) {
     data["General"]["separateUpdateEnabled"] = separateupdatefolder;
     data["General"]["compatibilityEnabled"] = compatibilityData;
     data["General"]["checkCompatibilityOnStartup"] = checkCompatibilityOnStartup;
+    data["General"]["isBackupSaveEnabled"] = isBackupSaveEnabled;
+    data["General"]["BackupFrequency"] = BackupFrequency;
+    data["General"]["BackupNumber"] = BackupNumber;
     data["Input"]["cursorState"] = cursorState;
     data["Input"]["cursorHideTimeout"] = cursorHideTimeout;
     data["Input"]["backButtonBehavior"] = backButtonBehavior;
@@ -1105,6 +1138,9 @@ void setDefaultValues() {
     showBackgroundImage = true;
     audioBackend = "cubeb";
     audioVolume = 100;
+    isBackupSaveEnabled = false;
+    BackupFrequency = 10;
+    BackupNumber = 2;
 }
 
 constexpr std::string_view GetDefaultKeyboardConfig() {

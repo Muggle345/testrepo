@@ -37,6 +37,9 @@ std::string getAudioBackend();
 bool getReadbacksEnabled();
 int getAudioVolume();
 std::string getMemoryAlloc();
+bool getBackupSaveEnabled();
+int getBackupFrequency();
+int getBackupNumber();
 
 std::string getLogFilter();
 std::string getLogType();
@@ -114,6 +117,9 @@ void setAudioBackend(std::string backend);
 void setReadbacksEnabled(bool enable);
 void setAudioVolume(int volume);
 void setMemoryAlloc(std::string alloc);
+void setBackupSaveEnabled(bool enable);
+void setBackupFrequency(int frequency);
+void setBackupNumber(int number);
 
 void setCursorState(s16 cursorState);
 void setCursorHideTimeout(int newcursorHideTimeout);

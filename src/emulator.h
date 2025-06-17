@@ -30,6 +30,7 @@ public:
 
 private:
     void LoadSystemModules(const std::string& game_serial);
+    static void StartAutosave(std::string game_serial);
 
     Core::MemoryManager* memory;
     Input::GameController* controller;

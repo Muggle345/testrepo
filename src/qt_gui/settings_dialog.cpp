@@ -377,6 +377,9 @@ SettingsDialog::SettingsDialog(std::span<const QString> physical_devices,
         ui->hostMarkersCheckBox->installEventFilter(this);
         ui->collectShaderCheckBox->installEventFilter(this);
         ui->copyGPUBuffersCheckBox->installEventFilter(this);
+
+        // BB Build
+        ui->BackupGroupBox->installEventFilter(this);
     }
 }
 
@@ -497,6 +500,12 @@ void SettingsDialog::LoadValuesFromConfig() {
         QString::fromStdString(toml::find_or<std::string>(data, "General", "backend", "cubeb")));
     ui->VolumeSlider->setValue(toml::find_or<int>(data, "General", "volume", 100));
     ui->VolumeValue->setText(QString::number(Config::getAudioVolume()));
+    ui->BackupCheckBox->setChecked(
+        toml::find_or<bool>(data, "General", "isBackupSaveEnabled", false));
+    ui->BackupIntervalComboBox->setCurrentText(
+        QString::number(toml::find_or<int>(data, "General", "BackupFrequency", 5)));
+    ui->BackupNumComboBox->setCurrentText(
+        QString::number(toml::find_or<int>(data, "General", "BackupNumber", 2)));
 
 #ifdef ENABLE_UPDATER
     ui->updateCheckBox->setChecked(toml::find_or<bool>(data, "General", "autoUpdate", false));
@@ -809,6 +818,10 @@ void SettingsDialog::UpdateSettings() {
     Config::setAlwaysShowChangelog(ui->changelogCheckBox->isChecked());
     Config::setUpdateChannel(channelMap.value(ui->updateComboBox->currentText()).toStdString());
     Config::setAudioVolume(ui->VolumeSlider->value());
+    Config::setBackupSaveEnabled(ui->BackupCheckBox->isChecked());
+    Config::setBackupFrequency(ui->BackupIntervalComboBox->currentText().toInt());
+    Config::setBackupNumber(ui->BackupNumComboBox->currentText().toInt());
+
     Config::setChooseHomeTab(
         chooseHomeTabMap.value(ui->chooseHomeTabComboBox->currentText()).toStdString());
     Config::setCompatibilityEnabled(ui->enableCompatibilityCheckBox->isChecked());
