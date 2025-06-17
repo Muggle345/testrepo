@@ -58,7 +58,7 @@ static std::map<std::string, FactoryDevice> available_device = {
 namespace Libraries::Kernel {
 
 int PS4_SYSV_ABI sceKernelOpen(const char* raw_path, int flags, u16 mode) {
-    LOG_INFO(Kernel_Fs, "path = {} flags = {:#x} mode = {}", raw_path, flags, mode);
+    // LOG_INFO(Kernel_Fs, "path = {} flags = {:#x} mode = {}", raw_path, flags, mode);
     auto* h = Common::Singleton<Core::FileSys::HandleTable>::Instance();
     auto* mnt = Common::Singleton<Core::FileSys::MntPoints>::Instance();
 
@@ -176,7 +176,7 @@ int PS4_SYSV_ABI sceKernelClose(int d) {
         file->f.Close();
     }
     file->is_opened = false;
-    LOG_INFO(Kernel_Fs, "Closing {}", file->m_guest_name);
+    // LOG_INFO(Kernel_Fs, "Closing {}", file->m_guest_name);
     // FIXME: Lock file mutex before deleting it?
     h->DeleteHandle(d);
     return ORBIS_OK;
@@ -443,7 +443,7 @@ int PS4_SYSV_ABI posix_rmdir(const char* path) {
 }
 
 int PS4_SYSV_ABI sceKernelStat(const char* path, OrbisKernelStat* sb) {
-    LOG_INFO(Kernel_Fs, "(PARTIAL) path = {}", path);
+    // LOG_INFO(Kernel_Fs, "(PARTIAL) path = {}", path);
     auto* mnt = Common::Singleton<Core::FileSys::MntPoints>::Instance();
     bool ro = false;
     const auto path_name = mnt->GetHostPath(path, &ro);
