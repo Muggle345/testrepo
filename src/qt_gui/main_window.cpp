@@ -128,6 +128,7 @@ void MainWindow::AddUiWidgets() {
     ui->toolBar->addWidget(ui->stopButton);
     ui->toolBar->addWidget(ui->refreshButton);
     ui->toolBar->addWidget(ui->settingsButton);
+    ui->toolBar->addWidget(ui->BBBButton);
     ui->toolBar->addWidget(ui->controllerButton);
     ui->toolBar->addWidget(ui->keyboardButton);
     QFrame* line = new QFrame(this);
@@ -331,6 +332,40 @@ void MainWindow::CreateConnects() {
                     }
                 });
 
+        settingsDialog->exec();
+    });
+
+    connect(ui->BBBButton, &QPushButton::clicked, this, [this]() {
+        auto settingsDialog = new SettingsDialog(m_gui_settings, m_compat_info, this);
+
+        connect(settingsDialog, &SettingsDialog::LanguageChanged, this,
+                &MainWindow::OnLanguageChanged);
+
+        connect(settingsDialog, &SettingsDialog::CompatibilityChanged, this,
+                &MainWindow::RefreshGameTable);
+
+        connect(settingsDialog, &SettingsDialog::accepted, this, &MainWindow::RefreshGameTable);
+        connect(settingsDialog, &SettingsDialog::rejected, this, &MainWindow::RefreshGameTable);
+        connect(settingsDialog, &SettingsDialog::close, this, &MainWindow::RefreshGameTable);
+
+        connect(settingsDialog, &SettingsDialog::BackgroundOpacityChanged, this,
+                [this](int opacity) {
+                    m_gui_settings->SetValue(gui::gl_backgroundImageOpacity,
+                                             std::clamp(opacity, 0, 100));
+                    if (m_game_list_frame) {
+                        QTableWidgetItem* current = m_game_list_frame->GetCurrentItem();
+                        if (current) {
+                            m_game_list_frame->SetListBackgroundImage(current);
+                        }
+                    }
+                    if (m_game_grid_frame) {
+                        if (m_game_grid_frame->IsValidCellSelected()) {
+                            m_game_grid_frame->SetGridBackgroundImage(m_game_grid_frame->crtRow,
+                                                                      m_game_grid_frame->crtColumn);
+                        }
+                    }
+                });
+        emit settingsDialog->BBB();
         settingsDialog->exec();
     });
 

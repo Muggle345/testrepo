@@ -34,6 +34,7 @@ signals:
     void LanguageChanged(const std::string& locale);
     void CompatibilityChanged();
     void BackgroundOpacityChanged(int opacity);
+    void BBB();
 
 private:
     void LoadValuesFromConfig();

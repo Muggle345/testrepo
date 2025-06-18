@@ -125,6 +125,8 @@ SettingsDialog::SettingsDialog(std::span<const QString> physical_devices,
     ui->descriptionText->setText(defaultTextEdit);
 
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &QWidget::close);
+    connect(this, &SettingsDialog::BBB, this,
+            [this]() { ui->tabWidgetSettings->setCurrentIndex(7); });
 
     connect(ui->buttonBox, &QDialogButtonBox::clicked, this,
             [this, config_dir](QAbstractButton* button) {

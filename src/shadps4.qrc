@@ -34,5 +34,6 @@
 		<file>images/keyboard_icon.png</file>
         <file>images/KBM.png</file>
         <file>images/achievement-sound.mp3</file>
+		<file>images/BBB.png</file>
 	</qresource>
 </RCC>

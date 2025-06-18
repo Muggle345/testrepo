@@ -42,6 +42,7 @@ public:
     QAction* setThemeOled;
     QWidget* centralWidget;
     QLineEdit* mw_searchbar;
+    QPushButton* BBBButton;
     QPushButton* playButton;
     QPushButton* pauseButton;
     QPushButton* stopButton;
@@ -211,6 +212,9 @@ public:
         settingsButton->setFlat(true);
         settingsButton->setIcon(QIcon(":images/settings_icon.png"));
         settingsButton->setIconSize(QSize(44, 44));
+        BBBButton = new QPushButton(centralWidget);
+        BBBButton->setIcon(QIcon(":images/BBB.png"));
+        BBBButton->setIconSize(QSize(40, 40));
         controllerButton = new QPushButton(centralWidget);
         controllerButton->setFlat(true);
         controllerButton->setIcon(QIcon(":images/controller_icon.png"));
