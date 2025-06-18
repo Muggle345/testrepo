@@ -38,15 +38,17 @@ void MemoryManager::SetupMemoryRegions(u64 flexible_size, bool use_extended_mem1
                                        bool use_extended_mem2) {
     const bool is_neo = ::Libraries::Kernel::sceKernelIsNeoMode();
     auto total_size = is_neo ? SCE_KERNEL_TOTAL_MEM_PRO : SCE_KERNEL_TOTAL_MEM;
-    if (Config::getMemoryAlloc() == "low") {
+    std::string alloc = Config::getMemoryAlloc();
+    LOG_INFO(Kernel_Vmm, "{} memory allocated", alloc);
+    if (alloc == "low") {
         const auto old_size = total_size;
-        total_size -= 1_GB;
-    } else if (Config::getMemoryAlloc() == "high") {
+        total_size = (total_size / 2) - 1_GB;
+    } else if (alloc == "medium") {
         const auto old_size = total_size;
-        total_size += 1_GB;
-    } else if (Config::getMemoryAlloc() == "max") {
+        total_size = (total_size / 2);
+    } else if (alloc == "high") {
         const auto old_size = total_size;
-        total_size += 5_GB;
+        total_size = (total_size / 2) + 1_GB;
     }
 
     if (!use_extended_mem1 && is_neo) {

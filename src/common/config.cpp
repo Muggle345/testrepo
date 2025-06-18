@@ -820,7 +820,7 @@ void load(const std::filesystem::path& path) {
         isHDRAllowed = toml::find_or<bool>(gpu, "allowHDR", false);
         readbacksEnabled = toml::find_or<bool>(gpu, "readbacksEnabled", false);
         particlesEnabled = toml::find_or<bool>(gpu, "particlesEnabled", true);
-        memoryAlloc = toml::find_or<bool>(gpu, "memoryAlloc", "medium");
+        memoryAlloc = toml::find_or<std::string>(gpu, "memoryAlloc", "medium");
     }
 
     if (data.contains("Vulkan")) {
