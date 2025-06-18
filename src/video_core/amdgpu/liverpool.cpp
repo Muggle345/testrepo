@@ -611,9 +611,6 @@ Liverpool::Task Liverpool::ProcessGraphics(std::span<const u32> dcb, std::span<c
                     if (Config::getParticlesEnabled()) {
                         rasterizer->CopyBuffer(dma_data->dst_addr_lo, dma_data->SrcAddress<VAddr>(),
                                                dma_data->NumBytes(), true, false);
-                    } else {
-                        rasterizer->CopyBuffer(dma_data->dst_addr_lo, dma_data->SrcAddress<VAddr>(),
-                                               0, true, false);
                     }
                 } else if (dma_data->src_sel == DmaDataSrc::Data &&
                            dma_data->dst_sel == DmaDataDst::Memory) {
@@ -624,9 +621,6 @@ Liverpool::Task Liverpool::ProcessGraphics(std::span<const u32> dcb, std::span<c
                     if (Config::getParticlesEnabled()) {
                         rasterizer->CopyBuffer(dma_data->DstAddress<VAddr>(), dma_data->src_addr_lo,
                                                dma_data->NumBytes(), false, true);
-                    } else {
-                        rasterizer->CopyBuffer(dma_data->DstAddress<VAddr>(), dma_data->src_addr_lo,
-                                               0, false, true);
                     }
                 } else if (dma_data->src_sel == DmaDataSrc::Memory &&
                            dma_data->dst_sel == DmaDataDst::Memory) {
@@ -634,9 +628,6 @@ Liverpool::Task Liverpool::ProcessGraphics(std::span<const u32> dcb, std::span<c
                         rasterizer->CopyBuffer(dma_data->DstAddress<VAddr>(),
                                                dma_data->SrcAddress<VAddr>(),
                                                dma_data->NumBytes() - 2, false, false);
-                    } else {
-                        rasterizer->CopyBuffer(dma_data->DstAddress<VAddr>(),
-                                               dma_data->SrcAddress<VAddr>(), 0, false, false);
                     }
                 } else {
                     UNREACHABLE_MSG("WriteData src_sel = {}, dst_sel = {}",
@@ -790,9 +781,6 @@ Liverpool::Task Liverpool::ProcessCompute(std::span<const u32> acb, u32 vqid) {
                 if (Config::getParticlesEnabled()) {
                     rasterizer->CopyBuffer(dma_data->dst_addr_lo, dma_data->SrcAddress<VAddr>(),
                                            dma_data->NumBytes(), true, false);
-                } else {
-                    rasterizer->CopyBuffer(dma_data->dst_addr_lo, dma_data->SrcAddress<VAddr>(), 0,
-                                           true, false);
                 }
             } else if (dma_data->src_sel == DmaDataSrc::Data &&
                        dma_data->dst_sel == DmaDataDst::Memory) {
@@ -803,9 +791,6 @@ Liverpool::Task Liverpool::ProcessCompute(std::span<const u32> acb, u32 vqid) {
                 if (Config::getParticlesEnabled()) {
                     rasterizer->CopyBuffer(dma_data->DstAddress<VAddr>(), dma_data->src_addr_lo,
                                            dma_data->NumBytes(), false, true);
-                } else {
-                    rasterizer->CopyBuffer(dma_data->DstAddress<VAddr>(), dma_data->src_addr_lo, 0,
-                                           false, true);
                 }
             } else if (dma_data->src_sel == DmaDataSrc::Memory &&
                        dma_data->dst_sel == DmaDataDst::Memory) {
@@ -813,9 +798,6 @@ Liverpool::Task Liverpool::ProcessCompute(std::span<const u32> acb, u32 vqid) {
                     rasterizer->CopyBuffer(dma_data->DstAddress<VAddr>(),
                                            dma_data->SrcAddress<VAddr>(), dma_data->NumBytes() - 2,
                                            false, false);
-                } else {
-                    rasterizer->CopyBuffer(dma_data->DstAddress<VAddr>(),
-                                           dma_data->SrcAddress<VAddr>(), 0, false, false);
                 }
             } else {
                 UNREACHABLE_MSG("WriteData src_sel = {}, dst_sel = {}",
