@@ -24,6 +24,7 @@
 #include "common/path_util.h"
 #include "memory_patcher.h"
 
+static bool resPatchdetected = false;
 namespace MemoryPatcher {
 
 uintptr_t g_eboot_address;
@@ -509,18 +510,23 @@ void PatchMemory(std::string modNameStr, std::string offsetStr, std::string valu
     for (std::string patchName : MedResPatches) {
         if (modNameStr == patchName) {
             Config::setMemoryAlloc("high");
-            LOG_INFO(Loader,
-                     "Detected medium-res patch: {}, Automatically set memory allocation to high",
-                     modNameStr);
+            if (!resPatchdetected)
+                LOG_INFO(
+                    Loader,
+                    "Detected medium-res patch: {}, Automatically set memory allocation to high",
+                    modNameStr);
+            resPatchdetected = true;
         }
     }
 
     for (std::string patchName : HighResPatches) {
         if (modNameStr == patchName) {
             Config::setMemoryAlloc("max");
-            LOG_INFO(Loader,
-                     "Detected high-res patch: {}, Automatically set memory allocation to max",
-                     modNameStr);
+            if (!resPatchdetected)
+                LOG_INFO(Loader,
+                         "Detected high-res patch: {}, Automatically set memory allocation to max",
+                         modNameStr);
+            resPatchdetected = true;
         }
     }
 

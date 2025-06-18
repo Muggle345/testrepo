@@ -713,7 +713,22 @@ void SettingsDialog::updateNoteTextEdit(const QString& elementName) {
     } else if (elementName == "collectShaderCheckBox") {
         text = tr("Collect Shaders:\\nYou need this enabled to edit shaders with the debug menu (Ctrl + F10).");
     } else if (elementName == "separateLogFilesCheckbox") {
-        text = tr("Separate Log Files:\\nWrites a separate logfile for each game.");}
+        text = tr("Separate Log Files:\\nWrites a separate logfile for each game.");
+    }    
+
+    // BB Build
+    if (elementName == "MemoryAllocGroupBox") {
+        text = "This is for custom patches only, built-in patches are automatically detected and do not require this. Sets dmem amount allocated to the game. Higher amounts are needed to drive higher resolutions w/o glitches or crashes, but lower amounts allow playing longer sessions before crashing or avoid crashing on startup.";
+    } else if (elementName == "BackupGroupBox") {
+        text = "Automatically copies saves into a backup folder";
+    } else if (elementName == "FSRGroupBox") {
+        text = "Changes FSR (AI resolution upscaling) and RCAS (sharpening for FSR) settings";
+    } else if (elementName == "ReadbacksCheckBox") {
+        text = "Enables GPU readbacks to fix vertex explosions without any mods. This causes additional significant stuttering on most systems";
+    } else if (elementName == "ParticlesCheckBox") {
+        text = "Renders certain particle effects not yet done by the official shadPS4 builds. Very rarely, this can cause some freezing or colorful vertex explosions or crashing after viscerals";
+    }
+
     // clang-format on
     ui->descriptionText->setText(text.replace("\\n", "\n"));
 }
