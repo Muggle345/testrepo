@@ -500,6 +500,30 @@ void PatchMemory(std::string modNameStr, std::string offsetStr, std::string valu
 
     std::memcpy(cheatAddress, bytePatch.data(), bytePatch.size());
 
+    std::vector<std::string> MedResPatches = {"Resolution Patch (2560x1440)",
+                                              "Resolution Patch (2560x1080) (21:9 2.37)"};
+    std::vector<std::string> HighResPatches = {
+        "Resolution Patch (3840x2160)", "Resolution Patch (3200x1800)",
+        "Resolution Patch (3440x1440) (21:9 2.38)", "Resolution Patch (3840x1080) (32:9 ~3.55)"};
+
+    for (std::string patchName : MedResPatches) {
+        if (modNameStr == patchName) {
+            Config::setMemoryAlloc("high");
+            LOG_INFO(Loader,
+                     "Detected medium-res patch: {}, Automatically set memory allocation to high",
+                     modNameStr);
+        }
+    }
+
+    for (std::string patchName : HighResPatches) {
+        if (modNameStr == patchName) {
+            Config::setMemoryAlloc("max");
+            LOG_INFO(Loader,
+                     "Detected high-res patch: {}, Automatically set memory allocation to max",
+                     modNameStr);
+        }
+    }
+
     LOG_INFO(Loader, "Applied patch: {}, Offset: {}, Value: {}", modNameStr,
              (uintptr_t)cheatAddress, valueStr);
 }
