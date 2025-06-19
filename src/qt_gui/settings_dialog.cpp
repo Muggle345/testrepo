@@ -338,6 +338,13 @@ SettingsDialog::SettingsDialog(std::span<const QString> physical_devices,
             QString RCASValue = QString::number(value / 1000.0, 'f', 3);
             ui->RCASValue->setText(RCASValue);
         });
+
+        connect(ui->BackupFolderButton, &QPushButton::clicked, this, [this]() {
+            QString saveDataPath;
+            Common::FS::PathToQString(saveDataPath, Config::GetSaveDataPath() / "1");
+            QDir(saveDataPath).mkpath(saveDataPath);
+            QDesktopServices::openUrl(QUrl::fromLocalFile(saveDataPath));
+        });
     }
 
     // Descriptions
