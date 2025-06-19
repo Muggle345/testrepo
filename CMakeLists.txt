@@ -1033,21 +1033,10 @@ if (APPLE)
         set_property(TARGET shadps4 APPEND PROPERTY BUILD_RPATH "@executable_path")
         set(MVK_DST ${CMAKE_CURRENT_BINARY_DIR})
     endif()
-
-      set(MVK_DYLIB_SRC ${CMAKE_CURRENT_BINARY_DIR}/externals/MoltenVK/libMoltenVK.dylib)
-      set(MVK_DYLIB_DST ${CMAKE_CURRENT_BINARY_DIR}/shadps4.app/Contents/Frameworks/libMoltenVK.dylib)
-      add_custom_command(
-          OUTPUT ${MVK_DYLIB_DST}
-          DEPENDS ${MVK_DYLIB_SRC}
-          COMMAND cmake -E copy ${MVK_DYLIB_SRC} ${MVK_DYLIB_DST})
-      add_custom_target(CopyMoltenVK DEPENDS ${MVK_DYLIB_DST})
-      add_dependencies(CopyMoltenVK MoltenVK)
-      add_dependencies(shadps4 CopyMoltenVK)
-      set_property(TARGET shadps4 APPEND PROPERTY BUILD_RPATH "@executable_path/../Frameworks")
-  else()
-      # For non-bundled SDL build, just do a normal library link.
-      target_link_libraries(shadps4 PRIVATE MoltenVK)
-  endif()
+    set(MVK_DYLIB_SRC ${CMAKE_CURRENT_BINARY_DIR}/externals/MoltenVK/libMoltenVK.dylib)
+    set(MVK_DYLIB_DST ${MVK_DST}/libMoltenVK.dylib)
+    set(MVK_ICD_SRC ${CMAKE_CURRENT_SOURCE_DIR}/externals/MoltenVK/MoltenVK/MoltenVK/icd/MoltenVK_icd.json)
+    set(MVK_ICD_DST ${MVK_DST}/MoltenVK_icd.json)
 
     add_custom_command(
         OUTPUT ${MVK_ICD_DST}
