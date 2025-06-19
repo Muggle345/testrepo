@@ -90,25 +90,6 @@ TrophyUI::TrophyUI(const std::filesystem::path& trophyIconPath, const std::strin
     trophy_type_icon = RefCountedTexture::DecodePngTexture(imgdata);
 
     AddLayer(this);
-
-#ifdef ENABLE_QT_GUI
-    if (!Config::getisTrophyPopupDisabled()) {
-        QString musicPathWav = QString::fromStdString(CustomTrophy_Dir.string() + "/trophy.wav");
-        QString musicPathMp3 = QString::fromStdString(CustomTrophy_Dir.string() + "/trophy.mp3");
-        QString defaultsound = "qrc:/images/achievement-sound.mp3";
-        if (fs::exists(musicPathWav.toStdString())) {
-            BackgroundMusicPlayer::getInstance().setVolume(Config::getAudioVolume());
-            BackgroundMusicPlayer::getInstance().playMusic(musicPathWav, false);
-        } else if (fs::exists(musicPathMp3.toStdString())) {
-            BackgroundMusicPlayer::getInstance().setVolume(Config::getAudioVolume());
-            BackgroundMusicPlayer::getInstance().playMusic(musicPathMp3, false);
-        } else {
-            int vol = std::clamp(0, 100, (Config::getAudioVolume() + 25));
-            BackgroundMusicPlayer::getInstance().setVolume(vol);
-            BackgroundMusicPlayer::getInstance().playTrophySound();
-        }
-    }
-#endif
 }
 
 TrophyUI::~TrophyUI() {
@@ -278,9 +259,28 @@ void AddTrophyToQueue(const std::filesystem::path& trophyIconPath, const std::st
     new_trophy.trophy_type = rarity;
     trophy_queue.push(new_trophy);
 
+#ifdef ENABLE_QT_GUI
+    const auto CustomTrophy_Dir = Common::FS::GetUserPath(Common::FS::PathType::CustomTrophy);
+    std::string customPath;
+
+    QString musicPathWav = QString::fromStdString(CustomTrophy_Dir.string() + "/trophy.wav");
+    QString musicPathMp3 = QString::fromStdString(CustomTrophy_Dir.string() + "/trophy.mp3");
+    QString defaultsound = "qrc:/images/achievement-sound.mp3";
+    if (fs::exists(musicPathWav.toStdString())) {
+        BackgroundMusicPlayer::getInstance().setVolume(100);
+        BackgroundMusicPlayer::getInstance().playMusic(musicPathWav, false);
+    } else if (fs::exists(musicPathMp3.toStdString())) {
+        BackgroundMusicPlayer::getInstance().setVolume(100);
+        BackgroundMusicPlayer::getInstance().playMusic(musicPathMp3, false);
+    } else {
+        BackgroundMusicPlayer::getInstance().setVolume(100);
+        BackgroundMusicPlayer::getInstance().playTrophySound();
+    }
+#endif
+
     if (!current_trophy_ui.has_value()) {
 #ifdef ENABLE_QT_GUI
-        BackgroundMusicPlayer::getInstance().stopMusic();
+        // BackgroundMusicPlayer::getInstance().stopMusic();
 #endif
         // Resetting the animation for the next trophy
         elapsed_time = 0.0f;                // Resetting animation time
