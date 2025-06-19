@@ -40,10 +40,7 @@ void MemoryManager::SetupMemoryRegions(u64 flexible_size, bool use_extended_mem1
     auto total_size = is_neo ? SCE_KERNEL_TOTAL_MEM_PRO : SCE_KERNEL_TOTAL_MEM;
     std::string alloc = Config::getMemoryAlloc();
     LOG_INFO(Kernel_Vmm, "{} memory allocated", alloc);
-    if (alloc == "low") {
-        const auto old_size = total_size;
-        total_size = (total_size / 2) - 1_GB;
-    } else if (alloc == "medium") {
+    if (alloc == "medium") {
         const auto old_size = total_size;
         total_size = (total_size / 2);
     } else if (alloc == "high") {
