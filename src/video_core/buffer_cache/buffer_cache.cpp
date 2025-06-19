@@ -793,6 +793,62 @@ bool BufferCache::SynchronizeBufferFromImage(Buffer& buffer, VAddr device_addr, 
     return true;
 }
 
+void BufferCache::WriteDataBuffer(Buffer& buffer, VAddr address, const void* value, u32 num_bytes) {
+    vk::BufferCopy copy = {
+        .srcOffset = 0,
+        .dstOffset = buffer.Offset(address),
+        .size = num_bytes,
+    };
+    vk::Buffer src_buffer = staging_buffer.Handle();
+    if (num_bytes < StagingBufferSize) {
+        const auto [staging, offset] = staging_buffer.Map(num_bytes);
+        std::memcpy(staging, value, num_bytes);
+        copy.srcOffset = offset;
+        staging_buffer.Commit();
+    } else {
+        // For large one time transfers use a temporary host buffer.
+        // RenderDoc can lag quite a bit if the stream buffer is too large.
+        Buffer temp_buffer{
+            instance, scheduler, MemoryUsage::Upload, 0, vk::BufferUsageFlagBits::eTransferSrc,
+            num_bytes};
+        src_buffer = temp_buffer.Handle();
+        u8* const staging = temp_buffer.mapped_data.data();
+        std::memcpy(staging, value, num_bytes);
+        scheduler.DeferOperation([buffer = std::move(temp_buffer)]() mutable {});
+    }
+    scheduler.EndRendering();
+    const auto cmdbuf = scheduler.CommandBuffer();
+    const vk::BufferMemoryBarrier2 pre_barrier = {
+        .srcStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+        .srcAccessMask = vk::AccessFlagBits2::eMemoryRead,
+        .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
+        .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
+        .buffer = buffer.Handle(),
+        .offset = buffer.Offset(address),
+        .size = num_bytes,
+    };
+    const vk::BufferMemoryBarrier2 post_barrier = {
+        .srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
+        .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
+        .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+        .dstAccessMask = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite,
+        .buffer = buffer.Handle(),
+        .offset = buffer.Offset(address),
+        .size = num_bytes,
+    };
+    cmdbuf.pipelineBarrier2(vk::DependencyInfo{
+        .dependencyFlags = vk::DependencyFlagBits::eByRegion,
+        .bufferMemoryBarrierCount = 1,
+        .pBufferMemoryBarriers = &pre_barrier,
+    });
+    cmdbuf.copyBuffer(src_buffer, buffer.Handle(), copy);
+    cmdbuf.pipelineBarrier2(vk::DependencyInfo{
+        .dependencyFlags = vk::DependencyFlagBits::eByRegion,
+        .bufferMemoryBarrierCount = 1,
+        .pBufferMemoryBarriers = &post_barrier,
+    });
+}
+
 void BufferCache::DeleteBuffer(BufferId buffer_id) {
     Buffer& buffer = slot_buffers[buffer_id];
     Unregister(buffer_id);

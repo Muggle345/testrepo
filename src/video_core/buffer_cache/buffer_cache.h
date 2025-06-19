@@ -91,6 +91,9 @@ public:
     void InlineData(VAddr address, const void* value, u32 num_bytes, bool is_gds);
     void CopyBuffer(VAddr dst, VAddr src, u32 num_bytes, bool dst_gds, bool src_gds);
 
+    /// Writes a value to GPU buffer. (uses staging buffer to temporarily store the data)
+    void WriteData(VAddr address, const void* value, u32 num_bytes, bool is_gds);
+
     /// Obtains a buffer for the specified region.
     [[nodiscard]] std::pair<Buffer*, u32> ObtainBuffer(VAddr gpu_addr, u32 size, bool is_written,
                                                        bool is_texel_buffer = false,
@@ -145,6 +148,8 @@ private:
     void ChangeRegister(BufferId buffer_id);
 
     void SynchronizeBuffer(Buffer& buffer, VAddr device_addr, u32 size, bool is_texel_buffer);
+
+    void WriteDataBuffer(Buffer& buffer, VAddr address, const void* value, u32 num_bytes);
 
     bool SynchronizeBufferFromImage(Buffer& buffer, VAddr device_addr, u32 size);
 
