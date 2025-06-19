@@ -411,6 +411,10 @@ SettingsDialog::SettingsDialog(std::span<const QString> physical_devices,
 
         // BB Build
         ui->BackupGroupBox->installEventFilter(this);
+        ui->MemoryAllocGroupBox->installEventFilter(this);
+        ui->FSRGroupBox->installEventFilter(this);
+        ui->ReadbacksCheckBox->installEventFilter(this);
+        ui->ParticlesCheckBox->installEventFilter(this);
     }
 }
 
