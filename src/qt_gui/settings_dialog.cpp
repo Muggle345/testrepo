@@ -334,6 +334,7 @@ SettingsDialog::SettingsDialog(std::span<const QString> physical_devices,
         ui->enableCompatibilityCheckBox->installEventFilter(this);
         ui->checkCompatibilityOnStartupCheckBox->installEventFilter(this);
         ui->updateCompatibilityButton->installEventFilter(this);
+        ui->audioBackendComboBox->installEventFilter(this);
 
         // User
         ui->OpenCustomTrophyLocationButton->installEventFilter(this);
@@ -484,6 +485,8 @@ void SettingsDialog::LoadValuesFromConfig() {
         toml::find_or<bool>(data, "General", "compatibilityEnabled", false));
     ui->checkCompatibilityOnStartupCheckBox->setChecked(
         toml::find_or<bool>(data, "General", "checkCompatibilityOnStartup", false));
+    ui->audioBackendComboBox->setCurrentText(
+        QString::fromStdString(toml::find_or<std::string>(data, "Audio", "backend", "cubeb")));
 
 #ifdef ENABLE_UPDATER
     ui->updateCheckBox->setChecked(toml::find_or<bool>(data, "General", "autoUpdate", false));
@@ -636,6 +639,8 @@ void SettingsDialog::updateNoteTextEdit(const QString& elementName) {
     //User
     if (elementName == "OpenCustomTrophyLocationButton") {
         text = tr("Open the custom trophy images/sounds folder:\\nYou can add custom images to the trophies and an audio.\\nAdd the files to custom_trophy with the following names:\\ntrophy.wav OR trophy.mp3, bronze.png, gold.png, platinum.png, silver.png\\nNote: The sound will only work in QT versions.");
+    } else if (elementName == "audioBackendGroupBox") {
+        text = tr("Select backend for audio.");
     }
 
     // Input
@@ -782,6 +787,7 @@ void SettingsDialog::UpdateSettings() {
     Config::setBackgroundImageOpacity(ui->backgroundImageOpacitySlider->value());
     emit BackgroundOpacityChanged(ui->backgroundImageOpacitySlider->value());
     Config::setShowBackgroundImage(ui->showBackgroundImageCheckBox->isChecked());
+    Config::setAudioBackend(ui->audioBackendComboBox->currentText().toStdString());
 
 #ifdef ENABLE_DISCORD_RPC
     auto* rpc = Common::Singleton<DiscordRPCHandler::RPC>::Instance();

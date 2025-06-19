@@ -32,6 +32,7 @@ bool getCompatibilityEnabled();
 bool getCheckCompatibilityOnStartup();
 int getBackgroundImageOpacity();
 bool getShowBackgroundImage();
+std::string getAudioBackend();
 
 std::string getLogFilter();
 std::string getLogType();
@@ -104,6 +105,7 @@ void setCompatibilityEnabled(bool use);
 void setCheckCompatibilityOnStartup(bool use);
 void setBackgroundImageOpacity(int opacity);
 void setShowBackgroundImage(bool show);
+void setAudioBackend(std::string backend);
 
 void setCursorState(s16 cursorState);
 void setCursorHideTimeout(int newcursorHideTimeout);

@@ -3,13 +3,14 @@
 
 #include <thread>
 #include <SDL3/SDL_audio.h>
-#include <SDL3/SDL_hints.h>
 
 #include "common/logging/log.h"
 #include "core/libraries/audio/audioout.h"
 #include "core/libraries/audio/audioout_backend.h"
 
 namespace Libraries::AudioOut {
+
+constexpr int AUDIO_STREAM_BUFFER_THRESHOLD = 65536; // Define constant for buffer threshold
 
 class SDLPortBackend : public PortBackend {
 public:
@@ -51,7 +52,7 @@ public:
         stream = nullptr;
     }
 
-    void Output(void* ptr) override {
+    void Output(void* ptr, size_t size) override {
         if (!stream) {
             return;
         }
