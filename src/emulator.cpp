@@ -125,9 +125,7 @@ void Emulator::Run(const std::filesystem::path& file, const std::vector<std::str
         }
         LOG_INFO(Loader, "Starting shadps4 emulator v{} ", Common::VERSION);
         LOG_INFO(Loader, "Revision {}", Common::g_scm_rev);
-        LOG_INFO(Loader, "Branch {}", Common::g_scm_branch);
         LOG_INFO(Loader, "Description {}", Common::g_scm_desc);
-        LOG_INFO(Loader, "Remote {}", Common::g_scm_remote_url);
 
         LOG_INFO(Config, "General LogType: {}", Config::getLogType());
         LOG_INFO(Config, "General isNeo: {}", Config::isNeoModeConsole());
@@ -198,10 +196,10 @@ void Emulator::Run(const std::filesystem::path& file, const std::vector<std::str
     std::string game_title = fmt::format("{} - {} <{}>", id, title, app_version);
     std::string window_title = "";
     if (Common::isRelease) {
-        window_title = fmt::format("shadPS4 BloodborneBuild v{} | {}", Common::VERSION, game_title);
+        window_title = fmt::format("shadPS4 BloodborneBuild v{} | {}", Common::VERSION, title);
     } else {
-        window_title = fmt::format("shadPS4 v{} {} | {}", Common::VERSION,
-                                       "BloodborneBuild", game_title)
+        window_title =
+            fmt::format("shadPS4 v{} {} | {}", Common::VERSION, "BloodborneBuild", title);
     }
     window = std::make_unique<Frontend::WindowSDL>(
         Config::getScreenWidth(), Config::getScreenHeight(), controller, window_title);

@@ -61,8 +61,7 @@ bool MainWindow::Init() {
     if (Common::isRelease) {
         window_title = fmt::format("shadPS4 BloodborneBuild v{}", Common::VERSION);
     } else {
-        window_title = fmt::format("shadPS4 v{} {} | {}", Common::VERSION,
-                                       "BloodborneBuild", game_title)
+        window_title = fmt::format("shadPS4 BloodborneBuild v{}", Common::VERSION);
     }
     setWindowTitle(QString::fromStdString(window_title));
     this->show();
