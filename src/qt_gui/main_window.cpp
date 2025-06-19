@@ -336,7 +336,7 @@ void MainWindow::CreateConnects() {
     });
 
     connect(ui->BBBButton, &QPushButton::clicked, this, [this]() {
-        auto settingsDialog = new SettingsDialog(m_gui_settings, m_compat_info, this);
+        auto settingsDialog = new SettingsDialog(m_physical_devices, m_compat_info, this);
 
         connect(settingsDialog, &SettingsDialog::LanguageChanged, this,
                 &MainWindow::OnLanguageChanged);
@@ -350,8 +350,7 @@ void MainWindow::CreateConnects() {
 
         connect(settingsDialog, &SettingsDialog::BackgroundOpacityChanged, this,
                 [this](int opacity) {
-                    m_gui_settings->SetValue(gui::gl_backgroundImageOpacity,
-                                             std::clamp(opacity, 0, 100));
+                    Config::setBackgroundImageOpacity(opacity);
                     if (m_game_list_frame) {
                         QTableWidgetItem* current = m_game_list_frame->GetCurrentItem();
                         if (current) {
@@ -365,6 +364,7 @@ void MainWindow::CreateConnects() {
                         }
                     }
                 });
+
         emit settingsDialog->BBB();
         settingsDialog->exec();
     });
