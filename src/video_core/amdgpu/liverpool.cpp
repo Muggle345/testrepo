@@ -608,28 +608,24 @@ Liverpool::Task Liverpool::ProcessGraphics(std::span<const u32> dcb, std::span<c
                                            true);
                 } else if (dma_data->src_sel == DmaDataSrc::Memory &&
                            dma_data->dst_sel == DmaDataDst::Gds) {
-                    if (Config::getParticlesEnabled()) {
+                    if (Config::getParticlesEnabled())
                         rasterizer->CopyBuffer(dma_data->dst_addr_lo, dma_data->SrcAddress<VAddr>(),
                                                dma_data->NumBytes(), true, false);
-                    }
                 } else if (dma_data->src_sel == DmaDataSrc::Data &&
                            dma_data->dst_sel == DmaDataDst::Memory) {
                     rasterizer->InlineData(dma_data->DstAddress<VAddr>(), &dma_data->data,
                                            sizeof(u32), false);
                 } else if (dma_data->src_sel == DmaDataSrc::Gds &&
                            dma_data->dst_sel == DmaDataDst::Memory) {
-                    if (Config::getParticlesEnabled()) {
+                    if (Config::getParticlesEnabled())
                         rasterizer->CopyBuffer(dma_data->DstAddress<VAddr>(), dma_data->src_addr_lo,
                                                dma_data->NumBytes(), false, true);
-                    }
                 } else if (dma_data->src_sel == DmaDataSrc::Memory &&
                            dma_data->dst_sel == DmaDataDst::Memory) {
-                    if (Config::getParticlesEnabled()) {
-                        int bytesReduce = (Config::getReadbacksEnabled() ? 0 : 2);
+                    if (Config::getParticlesEnabled())
                         rasterizer->CopyBuffer(dma_data->DstAddress<VAddr>(),
                                                dma_data->SrcAddress<VAddr>(),
-                                               dma_data->NumBytes() - 2, bytesReduce, false);
-                    }
+                                               dma_data->NumBytes() - 2, false, false);
                 } else {
                     UNREACHABLE_MSG("WriteData src_sel = {}, dst_sel = {}",
                                     u32(dma_data->src_sel.Value()), u32(dma_data->dst_sel.Value()));
@@ -779,28 +775,24 @@ Liverpool::Task Liverpool::ProcessCompute(std::span<const u32> acb, u32 vqid) {
                 rasterizer->InlineData(dma_data->dst_addr_lo, &dma_data->data, sizeof(u32), true);
             } else if (dma_data->src_sel == DmaDataSrc::Memory &&
                        dma_data->dst_sel == DmaDataDst::Gds) {
-                if (Config::getParticlesEnabled()) {
+                if (Config::getParticlesEnabled())
                     rasterizer->CopyBuffer(dma_data->dst_addr_lo, dma_data->SrcAddress<VAddr>(),
                                            dma_data->NumBytes(), true, false);
-                }
             } else if (dma_data->src_sel == DmaDataSrc::Data &&
                        dma_data->dst_sel == DmaDataDst::Memory) {
                 rasterizer->InlineData(dma_data->DstAddress<VAddr>(), &dma_data->data, sizeof(u32),
                                        false);
             } else if (dma_data->src_sel == DmaDataSrc::Gds &&
                        dma_data->dst_sel == DmaDataDst::Memory) {
-                if (Config::getParticlesEnabled()) {
+                if (Config::getParticlesEnabled())
                     rasterizer->CopyBuffer(dma_data->DstAddress<VAddr>(), dma_data->src_addr_lo,
                                            dma_data->NumBytes(), false, true);
-                }
             } else if (dma_data->src_sel == DmaDataSrc::Memory &&
                        dma_data->dst_sel == DmaDataDst::Memory) {
-                if (Config::getParticlesEnabled()) {
-                    int bytesReduce = (Config::getReadbacksEnabled() ? 0 : 2);
+                if (Config::getParticlesEnabled())
                     rasterizer->CopyBuffer(dma_data->DstAddress<VAddr>(),
-                                           dma_data->SrcAddress<VAddr>(),
-                                           dma_data->NumBytes() - bytesReduce, false, false);
-                }
+                                           dma_data->SrcAddress<VAddr>(), dma_data->NumBytes(),
+                                           false, false);
             } else {
                 UNREACHABLE_MSG("WriteData src_sel = {}, dst_sel = {}",
                                 u32(dma_data->src_sel.Value()), u32(dma_data->dst_sel.Value()));
