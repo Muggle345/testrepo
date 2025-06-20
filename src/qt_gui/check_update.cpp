@@ -76,13 +76,10 @@ void CheckUpdate::CheckForUpdates(const bool showMessage) {
 tr("The Auto Updater allows up to 60 update checks per hour.\\nYou have reached this limit. Please try again later.").replace("\\n", "\n"));
                     // clang-format on
                 } else {
-                    QMessageBox::warning(
-                        this, tr("Error"),
-                        QString(tr("Network error:") + "\n" + reply->errorString()));
+                    QMessageBox::warning(this, tr("Error"), QString(tr("Network error")));
                 }
             } else {
-                QMessageBox::warning(this, tr("Error"),
-                                     QString(tr("Network error:") + "\n" + reply->errorString()));
+                QMessageBox::warning(this, tr("Error"), QString(tr("Network error")));
             }
             reply->deleteLater();
             return;
@@ -320,9 +317,7 @@ void CheckUpdate::requestChangelog(const QString& currentRev, const QString& lat
     connect(compareReply, &QNetworkReply::finished, this,
             [this, compareReply, downloadUrl, latestDate, latestRev, currentDate, currentRev]() {
                 if (compareReply->error() != QNetworkReply::NoError) {
-                    QMessageBox::warning(
-                        this, tr("Error"),
-                        QString(tr("Network error:") + "\n%1").arg(compareReply->errorString()));
+                    QMessageBox::warning(this, tr("Error"), QString(tr("Network error")));
                     compareReply->deleteLater();
                     return;
                 }
@@ -401,8 +396,7 @@ void CheckUpdate::DownloadUpdate(const QString& url) {
         progressBar->setValue(100);
         if (reply->error() != QNetworkReply::NoError) {
             QMessageBox::warning(this, tr("Error"),
-                                 tr("Network error occurred while trying to access the URL") +
-                                     ":\n" + url + "\n" + reply->errorString());
+                                 tr("Network error occurred while trying to access the URL"));
             reply->deleteLater();
             progressBar->deleteLater();
             return;
