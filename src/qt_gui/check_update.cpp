@@ -46,10 +46,10 @@ void CheckUpdate::CheckForUpdates(const bool showMessage) {
     while (checkName) {
         updateChannel = QString::fromStdString(Config::getUpdateChannel());
         if (updateChannel == "Nightly") {
-            url = QUrl("https://api.github.com/repos/Alamar345/testrepo/releases");
+            url = QUrl("https://api.github.com/repos/Muggle345/testrepo/releases");
             checkName = false;
         } else if (updateChannel == "Release") {
-            url = QUrl("https://api.github.com/repos/Alamar345/testrepo/releases/latest");
+            url = QUrl("https://api.github.com/repos/Muggle345/testrepo/releases/latest");
             checkName = false;
         } else {
             if (Common::isRelease) {
@@ -309,7 +309,7 @@ void CheckUpdate::requestChangelog(const QString& currentRev, const QString& lat
                                    const QString& downloadUrl, const QString& latestDate,
                                    const QString& currentDate) {
     QString compareUrlString =
-        QString("https://api.github.com/repos/Alamar345/testrepo/compare/%1...%2")
+        QString("https://api.github.com/repos/Muggle345/testrepo/compare/%1...%2")
             .arg(currentRev)
             .arg(latestRev);
 
@@ -362,7 +362,7 @@ void CheckUpdate::requestChangelog(const QString& currentRev, const QString& lat
                         newChanges +=
                             QString(
                                 "(<a "
-                                "href=\"https://github.com/Alamar345/testrepo/pull/%1\">#%1</a>)")
+                                "href=\"https://github.com/Muggle345/testrepo/pull/%1\">#%1</a>)")
                                 .arg(num);
                         lastIndex = match.capturedEnd();
                     }
