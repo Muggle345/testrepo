@@ -545,7 +545,12 @@ void TextureCache::RefreshImage(Image& image, Vulkan::Scheduler* custom_schedule
 
     const auto& num_layers = image.info.resources.layers;
     const auto& num_mips = image.info.resources.levels;
-    ASSERT(num_mips == image.info.mips_layout.size());
+    // ASSERT(num_mips == image.info.mips_layout.size());
+
+    if (num_mips != image.info.mips_layout.size()) {
+        LOG_WARNING(Render_Vulkan, "Unexpected inequality: num_mips = {}, mips layout size = {}",
+                    num_mips, image.info.mips_layout.size());
+    }
 
     const bool is_gpu_modified = True(image.flags & ImageFlagBits::GpuModified);
     const bool is_gpu_dirty = True(image.flags & ImageFlagBits::GpuDirty);
@@ -761,7 +766,7 @@ void TextureCache::UntrackImage(ImageId image_id) {
     image.track_addr = 0;
     image.track_addr_end = 0;
     if (size != 0) {
-        tracker.UpdatePageWatchers<false>(addr, size);
+        tracker.UpdatePageWatchers<-1>(addr, size);
     }
 }
 
@@ -780,7 +785,7 @@ void TextureCache::UntrackImageHead(ImageId image_id) {
         // Cehck its hash later.
         MarkAsMaybeDirty(image_id, image);
     }
-    tracker.UpdatePageWatchers<false>(image_begin, size);
+    tracker.UpdatePageWatchers<-1>(image_begin, size);
 }
 
 void TextureCache::UntrackImageTail(ImageId image_id) {
@@ -799,7 +804,7 @@ void TextureCache::UntrackImageTail(ImageId image_id) {
         // Cehck its hash later.
         MarkAsMaybeDirty(image_id, image);
     }
-    tracker.UpdatePageWatchers<false>(addr, size);
+    tracker.UpdatePageWatchers<-1>(addr, size);
 }
 
 void TextureCache::DeleteImage(ImageId image_id) {

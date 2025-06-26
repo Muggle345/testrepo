@@ -1534,10 +1534,6 @@ public:
         return mapped_queues[curr_qid].cs_state;
     }
 
-    inline u64 GetFenceTick() const {
-        return fence_tick;
-    }
-
     struct AscQueueInfo {
         static constexpr size_t Pm4BufferSize = 1024;
         VAddr map_addr;
@@ -1587,9 +1583,8 @@ private:
     Task ProcessGraphics(std::span<const u32> dcb, std::span<const u32> ccb);
     Task ProcessCeUpdate(std::span<const u32> ccb);
     template <bool is_indirect = false>
-    Task ProcessCompute(std::span<const u32> acb, u32 vqid);
+    Task ProcessCompute(const u32* acb, u32 acb_dwords, u32 vqid);
 
-    void ProcessCommands();
     void Process(std::stop_token stoken);
 
     struct GpuQueue {
@@ -1634,7 +1629,6 @@ private:
     std::condition_variable_any submit_cv;
     std::queue<Common::UniqueFunction<void>> command_queue{};
     int curr_qid{-1};
-    u64 fence_tick{0};
 };
 
 static_assert(GFX6_3D_REG_INDEX(ps_program) == 0x2C08);

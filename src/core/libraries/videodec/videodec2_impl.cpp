@@ -53,11 +53,6 @@ s32 VdecDecoder::Decode(const OrbisVideodec2InputData& inputData,
         outputInfo.frameFormat = 0;
     }
 
-    // Only set frameFormat if the game uses the newer struct version.
-    if (outputInfo.thisSize == sizeof(OrbisVideodec2OutputInfo)) {
-        outputInfo.frameFormat = 0;
-    }
-
     if (!inputData.auData) {
         return ORBIS_VIDEODEC2_ERROR_ACCESS_UNIT_POINTER;
     }
@@ -157,11 +152,6 @@ s32 VdecDecoder::Flush(OrbisVideodec2FrameBuffer& frameBuffer,
     outputInfo.isValid = false;
     outputInfo.isErrorFrame = true;
     outputInfo.pictureCount = 0;
-
-    // Only set frameFormat if the game uses the newer struct version.
-    if (outputInfo.thisSize == sizeof(OrbisVideodec2OutputInfo)) {
-        outputInfo.frameFormat = 0;
-    }
 
     // Only set frameFormat if the game uses the newer struct version.
     if (outputInfo.thisSize == sizeof(OrbisVideodec2OutputInfo)) {

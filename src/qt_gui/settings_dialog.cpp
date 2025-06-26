@@ -124,12 +124,22 @@ SettingsDialog::SettingsDialog(std::shared_ptr<gui_settings> gui_settings,
     ui->hideCursorComboBox->addItem(tr("Always"));
 
     InitializeEmulatorLanguages();
+    if (!std::filesystem::exists(Common::FS::GetUserPath(Common::FS::PathType::UserDir) /
+                                 "imgui.ini")) {
+        ui->FSRGroupBox->setVisible(false);
+    } else {
+        ui->FSRLabel->setVisible(false);
+        DevSettingsFile = Common::FS::GetUserPath(Common::FS::PathType::UserDir) / "imgui.ini";
+        DevSettingsExists = true;
+    }
     LoadValuesFromConfig();
 
     defaultTextEdit = tr("Point your mouse at an option to display its description.");
     ui->descriptionText->setText(defaultTextEdit);
 
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &QWidget::close);
+    connect(this, &SettingsDialog::BBB, this,
+            [this]() { ui->tabWidgetSettings->setCurrentIndex(7); });
 
     connect(ui->buttonBox, &QDialogButtonBox::clicked, this,
             [this, config_dir](QAbstractButton* button) {
@@ -137,14 +147,22 @@ SettingsDialog::SettingsDialog(std::shared_ptr<gui_settings> gui_settings,
                     is_saving = true;
                     UpdateSettings();
                     Config::save(config_dir / "config.toml");
+                    if (DevSettingsExists)
+                        SaveFSRValues();
                     QWidget::close();
                 } else if (button == ui->buttonBox->button(QDialogButtonBox::Apply)) {
                     UpdateSettings();
                     Config::save(config_dir / "config.toml");
+                    if (DevSettingsExists)
+                        SaveFSRValues();
                 } else if (button == ui->buttonBox->button(QDialogButtonBox::RestoreDefaults)) {
                     Config::setDefaultValues();
                     setDefaultValues();
                     Config::save(config_dir / "config.toml");
+                    if (DevSettingsExists) {
+                        SetDefFSRValues();
+                        SaveFSRValues();
+                    }
                     LoadValuesFromConfig();
                 } else if (button == ui->buttonBox->button(QDialogButtonBox::Close)) {
                     ui->backgroundImageOpacitySlider->setValue(backgroundImageOpacitySlider_backup);
@@ -201,6 +219,10 @@ SettingsDialog::SettingsDialog(std::shared_ptr<gui_settings> gui_settings,
         connect(ui->checkUpdateButton, &QPushButton::clicked, this, [this]() {
             auto checkUpdate = new CheckUpdate(m_gui_settings, true);
             checkUpdate->exec();
+        });
+
+        connect(ui->VolumeSlider, &QSlider::valueChanged, this, [this](int value) {
+            ui->VolumeValue->setText(QString::number(ui->VolumeSlider->value()));
         });
 #else
         ui->updaterGroupBox->setVisible(false);
@@ -333,6 +355,21 @@ SettingsDialog::SettingsDialog(std::shared_ptr<gui_settings> gui_settings,
         });
     }
 
+    // BB BUILD TAB
+    {
+        connect(ui->RCASSlider, &QSlider::valueChanged, this, [this](int value) {
+            QString RCASValue = QString::number(value / 1000.0, 'f', 3);
+            ui->RCASValue->setText(RCASValue);
+        });
+
+        connect(ui->BackupFolderButton, &QPushButton::clicked, this, [this]() {
+            QString saveDataPath;
+            Common::FS::PathToQString(saveDataPath, Config::GetSaveDataPath() / "1");
+            QDir(saveDataPath).mkpath(saveDataPath);
+            QDesktopServices::openUrl(QUrl::fromLocalFile(saveDataPath));
+        });
+    }
+
     // Descriptions
     {
         // General
@@ -354,6 +391,8 @@ SettingsDialog::SettingsDialog(std::shared_ptr<gui_settings> gui_settings,
         ui->enableCompatibilityCheckBox->installEventFilter(this);
         ui->checkCompatibilityOnStartupCheckBox->installEventFilter(this);
         ui->updateCompatibilityButton->installEventFilter(this);
+        ui->audioBackendComboBox->installEventFilter(this);
+        ui->separateUpdatesCheckBox->installEventFilter(this);
 
         // User
         ui->OpenCustomTrophyLocationButton->installEventFilter(this);
@@ -391,6 +430,13 @@ SettingsDialog::SettingsDialog(std::shared_ptr<gui_settings> gui_settings,
         ui->hostMarkersCheckBox->installEventFilter(this);
         ui->collectShaderCheckBox->installEventFilter(this);
         ui->copyGPUBuffersCheckBox->installEventFilter(this);
+
+        // BB Build
+        ui->BackupGroupBox->installEventFilter(this);
+        ui->MemoryAllocGroupBox->installEventFilter(this);
+        ui->FSRGroupBox->installEventFilter(this);
+        ui->ReadbacksCheckBox->installEventFilter(this);
+        ui->ParticlesCheckBox->installEventFilter(this);
     }
 }
 
@@ -450,6 +496,10 @@ void SettingsDialog::LoadValuesFromConfig() {
     ui->dumpShadersCheckBox->setChecked(toml::find_or<bool>(data, "GPU", "dumpShaders", false));
     ui->nullGpuCheckBox->setChecked(toml::find_or<bool>(data, "GPU", "nullGpu", false));
     ui->enableHDRCheckBox->setChecked(toml::find_or<bool>(data, "GPU", "allowHDR", false));
+    ui->ReadbacksCheckBox->setChecked(toml::find_or<bool>(data, "GPU", "readbacksEnabled", false));
+    ui->ParticlesCheckBox->setChecked(toml::find_or<bool>(data, "GPU", "particlesEnabled", true));
+    ui->MemoryComboBox->setCurrentText(
+        QString::fromStdString(toml::find_or<std::string>(data, "GPU", "memoryAlloc", "medium")));
     ui->playBGMCheckBox->setChecked(m_gui_settings->GetValue(gui::gl_playBackgroundMusic).toBool());
     ui->disableTrophycheckBox->setChecked(
         toml::find_or<bool>(data, "General", "isTrophyPopupDisabled", false));
@@ -478,6 +528,8 @@ void SettingsDialog::LoadValuesFromConfig() {
         QString::fromStdString(toml::find_or<std::string>(data, "General", "logFilter", "")));
     ui->userNameLineEdit->setText(
         QString::fromStdString(toml::find_or<std::string>(data, "General", "userName", "shadPS4")));
+    ui->separateUpdatesCheckBox->setChecked(
+        toml::find_or<bool>(data, "General", "separateUpdateEnabled", false));
     ui->trophyKeyLineEdit->setText(
         QString::fromStdString(toml::find_or<std::string>(data, "Keys", "TrophyKey", "")));
     ui->trophyKeyLineEdit->setEchoMode(QLineEdit::Password);
@@ -501,6 +553,16 @@ void SettingsDialog::LoadValuesFromConfig() {
         toml::find_or<bool>(data, "General", "compatibilityEnabled", false));
     ui->checkCompatibilityOnStartupCheckBox->setChecked(
         toml::find_or<bool>(data, "General", "checkCompatibilityOnStartup", false));
+    ui->audioBackendComboBox->setCurrentText(
+        QString::fromStdString(toml::find_or<std::string>(data, "General", "backend", "cubeb")));
+    ui->VolumeSlider->setValue(toml::find_or<int>(data, "General", "volume", 100));
+    ui->VolumeValue->setText(QString::number(Config::getAudioVolume()));
+    ui->BackupCheckBox->setChecked(
+        toml::find_or<bool>(data, "General", "isBackupSaveEnabled", false));
+    ui->BackupIntervalComboBox->setCurrentText(
+        QString::number(toml::find_or<int>(data, "General", "BackupFrequency", 5)));
+    ui->BackupNumComboBox->setCurrentText(
+        QString::number(toml::find_or<int>(data, "General", "BackupNumber", 2)));
 
 #ifdef ENABLE_UPDATER
     ui->updateCheckBox->setChecked(m_gui_settings->GetValue(gui::gen_checkForUpdates).toBool());
@@ -541,6 +603,9 @@ void SettingsDialog::LoadValuesFromConfig() {
     backgroundImageOpacitySlider_backup =
         m_gui_settings->GetValue(gui::gl_backgroundImageOpacity).toInt();
     bgm_volume_backup = m_gui_settings->GetValue(gui::gl_backgroundMusicVolume).toInt();
+
+    if (DevSettingsExists)
+        LoadFSRValues();
 }
 
 void SettingsDialog::InitializeEmulatorLanguages() {
@@ -624,6 +689,8 @@ void SettingsDialog::updateNoteTextEdit(const QString& elementName) {
         text = tr("Trophy Key:\\nKey used to decrypt trophies. Must be obtained from your jailbroken console.\\nMust contain only hex characters.");
     } else if (elementName == "logTypeGroupBox") {
         text = tr("Log Type:\\nSets whether to synchronize the output of the log window for performance. May have adverse effects on emulation.");
+    } else if (elementName == "separateUpdatesCheckBox") {
+        text = tr("Enable Separate Update Folder:\\nEnables installing game updates into a separate folder for easy management.\\nThis can be manually created by adding the extracted update to the game folder with the name \"CUSA00000-UPDATE\" where the CUSA ID matches the game's ID.");
     } else if (elementName == "logFilter") {
         text = tr("Log Filter:\\nFilters the log to only print specific information.\\nExamples: \"Core:Trace\" \"Lib.Pad:Debug Common.Filesystem:Error\" \"*:Critical\"\\nLevels: Trace, Debug, Info, Warning, Error, Critical - in this order, a specific level silences all levels preceding it in the list and logs every level after it.");
     #ifdef ENABLE_UPDATER
@@ -649,6 +716,8 @@ void SettingsDialog::updateNoteTextEdit(const QString& elementName) {
     //User
     if (elementName == "OpenCustomTrophyLocationButton") {
         text = tr("Open the custom trophy images/sounds folder:\\nYou can add custom images to the trophies and an audio.\\nAdd the files to custom_trophy with the following names:\\ntrophy.wav OR trophy.mp3, bronze.png, gold.png, platinum.png, silver.png\\nNote: The sound will only work in QT versions.");
+    } else if (elementName == "audioBackendGroupBox") {
+        text = tr("audioBackendGroupBox");
     }
 
     // Input
@@ -709,7 +778,22 @@ void SettingsDialog::updateNoteTextEdit(const QString& elementName) {
     } else if (elementName == "collectShaderCheckBox") {
         text = tr("Collect Shaders:\\nYou need this enabled to edit shaders with the debug menu (Ctrl + F10).");
     } else if (elementName == "separateLogFilesCheckbox") {
-        text = tr("Separate Log Files:\\nWrites a separate logfile for each game.");}
+        text = tr("Separate Log Files:\\nWrites a separate logfile for each game.");
+    }    
+
+    // BB Build
+    if (elementName == "MemoryAllocGroupBox") {
+        text = "This is for custom patches only, built-in patches are automatically detected and do not require this. Sets dmem amount allocated to the game. Higher amounts are needed to drive higher resolutions w/o glitches or crashes, but lower amounts allow playing longer sessions before crashing or avoid crashing on startup.";
+    } else if (elementName == "BackupGroupBox") {
+        text = "Automatically copies saves into a backup folder";
+    } else if (elementName == "FSRGroupBox") {
+        text = "Changes FSR (AI resolution upscaling) and RCAS (sharpening for FSR) settings";
+    } else if (elementName == "ReadbacksCheckBox") {
+        text = "Enables GPU readbacks to fix vertex explosions without any mods. This causes additional significant stuttering on most systems";
+    } else if (elementName == "ParticlesCheckBox") {
+        text = "Renders certain particle effects not yet done by the official shadPS4 builds. Very rarely, this can cause some freezing or colorful vertex explosions or crashing after viscerals";
+    }
+
     // clang-format on
     ui->descriptionText->setText(text.replace("\\n", "\n"));
 }
@@ -755,6 +839,7 @@ void SettingsDialog::UpdateSettings() {
     Config::setLogType(logTypeMap.value(ui->logTypeComboBox->currentText()).toStdString());
     Config::setLogFilter(ui->logFilterLineEdit->text().toStdString());
     Config::setUserName(ui->userNameLineEdit->text().toStdString());
+    Config::setSeparateUpdateEnabled(ui->separateUpdatesCheckBox->isChecked());
     Config::setTrophyKey(ui->trophyKeyLineEdit->text().toStdString());
     Config::setCursorState(ui->hideCursorComboBox->currentIndex());
     Config::setCursorHideTimeout(ui->idleTimeoutSpinBox->value());
@@ -767,6 +852,9 @@ void SettingsDialog::UpdateSettings() {
     Config::setVblankDiv(ui->vblankSpinBox->value());
     Config::setDumpShaders(ui->dumpShadersCheckBox->isChecked());
     Config::setNullGpu(ui->nullGpuCheckBox->isChecked());
+    Config::setReadbacksEnabled(ui->ReadbacksCheckBox->isChecked());
+    Config::setParticlesEnabled(ui->ParticlesCheckBox->isChecked());
+    Config::setMemoryAlloc(ui->MemoryComboBox->currentText().toStdString());
     Config::setLoadGameSizeEnabled(ui->gameSizeCheckBox->isChecked());
     Config::setShowSplash(ui->showSplashCheckBox->isChecked());
     Config::setDebugDump(ui->debugDump->isChecked());
@@ -779,6 +867,11 @@ void SettingsDialog::UpdateSettings() {
     Config::setVkCrashDiagnosticEnabled(ui->crashDiagnosticsCheckBox->isChecked());
     Config::setCollectShaderForDebug(ui->collectShaderCheckBox->isChecked());
     Config::setCopyGPUCmdBuffers(ui->copyGPUBuffersCheckBox->isChecked());
+    Config::setAudioVolume(ui->VolumeSlider->value());
+    Config::setBackupSaveEnabled(ui->BackupCheckBox->isChecked());
+    Config::setBackupFrequency(ui->BackupIntervalComboBox->currentText().toInt());
+    Config::setBackupNumber(ui->BackupNumComboBox->currentText().toInt());
+
     m_gui_settings->SetValue(gui::gen_checkForUpdates, ui->updateCheckBox->isChecked());
     m_gui_settings->SetValue(gui::gen_showChangeLog, ui->changelogCheckBox->isChecked());
     m_gui_settings->SetValue(gui::gen_updateChannel,
@@ -803,6 +896,7 @@ void SettingsDialog::UpdateSettings() {
         dirs_with_states.push_back({path, enabled});
     }
     Config::setAllGameInstallDirs(dirs_with_states);
+    Config::setAudioBackend(ui->audioBackendComboBox->currentText().toStdString());
 
 #ifdef ENABLE_DISCORD_RPC
     auto* rpc = Common::Singleton<DiscordRPCHandler::RPC>::Instance();
@@ -867,10 +961,89 @@ void SettingsDialog::setDefaultValues() {
     m_gui_settings->SetValue(gui::gl_backgroundMusicVolume, 50);
     m_gui_settings->SetValue(gui::gen_checkForUpdates, false);
     m_gui_settings->SetValue(gui::gen_showChangeLog, false);
+    m_gui_settings->SetValue(gui::gen_guiLanguage, "en_US");
     if (Common::g_is_release) {
         m_gui_settings->SetValue(gui::gen_updateChannel, "Release");
     } else {
         m_gui_settings->SetValue(gui::gen_updateChannel, "Nightly");
     }
-    m_gui_settings->SetValue(gui::gen_guiLanguage, "en_US");
+}
+
+void SettingsDialog::SetDefFSRValues() {
+    ui->FSRCheckBox->setChecked(true);
+    ui->RCASCheckBox->setChecked(true);
+    ui->RCASSlider->setValue(250);
+}
+
+void SettingsDialog::LoadFSRValues() {
+    std::fstream file(DevSettingsFile);
+    std::string line;
+    std::vector<std::string> lines;
+    int lineCount = 0;
+    int FSRVal;
+    int RCASVal;
+    float RCASAtenVal;
+
+    while (std::getline(file, line)) {
+        lineCount++;
+
+        if (line.contains("fsr_enabled")) {
+            std::string FSREnabledString(1, line.back());
+            FSRVal = std::stoi(FSREnabledString);
+        }
+
+        if (line.contains("fsr_rcas_enabled")) {
+            std::string RCASEnabledString(1, line.back());
+            RCASVal = std::stoi(RCASEnabledString);
+        }
+
+        if (line.contains("fsr_rcas_attenuation")) {
+            std::size_t equal_pos = line.find('=');
+            std::string RCASAtenString(line.substr(equal_pos + 1));
+            RCASAtenVal = std::stof(RCASAtenString);
+        }
+    }
+    file.close();
+
+    ui->FSRCheckBox->setChecked((FSRVal == 1 ? true : false));
+    ui->RCASCheckBox->setChecked((RCASVal == 1 ? true : false));
+    ui->RCASSlider->setValue(round(RCASAtenVal * 1000));
+
+    QString RCASValue = QString::number(RCASAtenVal, 'f', 3);
+    ui->RCASValue->setText(RCASValue);
+}
+
+void SettingsDialog::SaveFSRValues() {
+    std::ifstream file(DevSettingsFile);
+    std::string line;
+    std::vector<std::string> lines;
+    int lineCount = 0;
+
+    while (std::getline(file, line)) {
+        lineCount++;
+
+        if (line.contains("fsr_enabled")) {
+            std::string FSRVal = ui->FSRCheckBox->isChecked() ? "1" : "0";
+            line = "fsr_enabled=" + FSRVal;
+        }
+
+        if (line.contains("fsr_rcas_enabled")) {
+            std::string RCASVal = ui->RCASCheckBox->isChecked() ? "1" : "0";
+            line = "fsr_rcas_enabled=" + RCASVal;
+        }
+
+        if (line.contains("fsr_rcas_attenuation")) {
+            float RCASAtenVal = ui->RCASSlider->value() / 1000.0;
+            line = "fsr_rcas_attenuation=" + std::to_string(RCASAtenVal);
+        }
+
+        lines.push_back(line);
+    }
+    file.close();
+
+    std::ofstream output_file(DevSettingsFile);
+    for (auto const& line : lines) {
+        output_file << line << '\n';
+    }
+    output_file.close();
 }
