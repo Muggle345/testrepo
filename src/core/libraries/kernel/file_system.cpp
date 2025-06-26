@@ -59,7 +59,7 @@ static std::map<std::string, FactoryDevice> available_device = {
 namespace Libraries::Kernel {
 
 s32 PS4_SYSV_ABI open(const char* raw_path, s32 flags, u16 mode) {
-    LOG_INFO(Kernel_Fs, "path = {} flags = {:#x} mode = {}", raw_path, flags, mode);
+    //  LOG_INFO(Kernel_Fs, "path = {} flags = {:#x} mode = {}", raw_path, flags, mode);
     auto* h = Common::Singleton<Core::FileSys::HandleTable>::Instance();
     auto* mnt = Common::Singleton<Core::FileSys::MntPoints>::Instance();
 
@@ -257,7 +257,7 @@ s32 PS4_SYSV_ABI close(s32 fd) {
         file->f.Close();
     }
     file->is_opened = false;
-    LOG_INFO(Kernel_Fs, "Closing {}", file->m_guest_name);
+    // LOG_INFO(Kernel_Fs, "Closing {}", file->m_guest_name);
     // FIXME: Lock file mutex before deleting it?
     h->DeleteHandle(fd);
     return ORBIS_OK;
@@ -293,6 +293,7 @@ s64 PS4_SYSV_ABI write(s32 fd, const void* buf, size_t nbytes) {
         }
         return result;
     }
+
     return file->f.WriteRaw<u8>(buf, nbytes);
 }
 
@@ -574,7 +575,7 @@ s32 PS4_SYSV_ABI sceKernelRmdir(const char* path) {
 }
 
 s32 PS4_SYSV_ABI posix_stat(const char* path, OrbisKernelStat* sb) {
-    LOG_INFO(Kernel_Fs, "(PARTIAL) path = {}", path);
+    // LOG_INFO(Kernel_Fs, "(PARTIAL) path = {}", path);
     auto* mnt = Common::Singleton<Core::FileSys::MntPoints>::Instance();
     const auto path_name = mnt->GetHostPath(path);
     std::memset(sb, 0, sizeof(OrbisKernelStat));
@@ -750,7 +751,24 @@ s32 PS4_SYSV_ABI posix_rename(const char* from, const char* to) {
         *__Error() = POSIX_ENOTEMPTY;
         return -1;
     }
+
+    // On Windows, std::filesystem::rename will error if the file has been opened before.
     std::filesystem::copy(src_path, dst_path, std::filesystem::copy_options::overwrite_existing);
+    auto* h = Common::Singleton<Core::FileSys::HandleTable>::Instance();
+    auto file = h->GetFile(src_path);
+    if (file) {
+        // We need to force ReadWrite if the file had Write access before
+        // Otherwise f.Open will clear the file contents.
+        auto access_mode = file->f.GetAccessMode() == Common::FS::FileAccessMode::Write
+                               ? Common::FS::FileAccessMode::ReadWrite
+                               : file->f.GetAccessMode();
+        file->f.Close();
+        std::filesystem::remove(src_path);
+        file->f.Open(dst_path, access_mode);
+    } else {
+        std::filesystem::remove(src_path);
+    }
+
     return ORBIS_OK;
 }
 
@@ -1050,6 +1068,7 @@ void RegisterFileSystem(Core::Loader::SymbolsResolver* sym) {
     LIB_FUNCTION("4wSze92BhLI", "libkernel", 1, "libkernel", 1, 1, sceKernelWrite);
     LIB_FUNCTION("+WRlkKjZvag", "libkernel", 1, "libkernel", 1, 1, readv);
     LIB_FUNCTION("YSHRBRLn2pI", "libkernel", 1, "libkernel", 1, 1, writev);
+    LIB_FUNCTION("kAt6VDbHmro", "libkernel", 1, "libkernel", 1, 1, sceKernelWritev);
     LIB_FUNCTION("Oy6IpwgtYOk", "libScePosix", 1, "libkernel", 1, 1, posix_lseek);
     LIB_FUNCTION("Oy6IpwgtYOk", "libkernel", 1, "libkernel", 1, 1, posix_lseek);
     LIB_FUNCTION("oib76F-12fk", "libkernel", 1, "libkernel", 1, 1, sceKernelLseek);

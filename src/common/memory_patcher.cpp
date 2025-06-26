@@ -3,6 +3,8 @@
 
 #include <algorithm>
 #include <codecvt>
+#include <fstream>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <pugixml.hpp>
@@ -17,10 +19,12 @@
 #include <QString>
 #include <QXmlStreamReader>
 #endif
+#include "common/config.h"
 #include "common/logging/log.h"
 #include "common/path_util.h"
 #include "memory_patcher.h"
 
+static bool resPatchdetected = false;
 namespace MemoryPatcher {
 
 EXPORT uintptr_t g_eboot_address;
@@ -118,6 +122,20 @@ std::string convertValueToHex(const std::string type, const std::string valueStr
 }
 
 void OnGameLoaded() {
+    if (g_game_serial == "CUSA03173" || g_game_serial == "CUSA00900" ||
+        g_game_serial == "CUSA00299" || g_game_serial == "CUSA00207") {
+        std::filesystem::path savedir =
+            Config::GetSaveDataPath() / "1" / g_game_serial / "SPRJ0005";
+
+        if (g_game_serial == "CUSA03173")
+            savedir = Config::GetSaveDataPath() / "1" / "CUSA00207" / "SPRJ0005";
+
+        std::ofstream savefile1;
+        savefile1.open(savedir / "userdata0010.", std::ios::in | std::ios::out | std::ios::binary);
+        savefile1.seekp(0x204E);
+        savefile1.put(0x1);
+        savefile1.close();
+    }
 
     if (!patchFile.empty()) {
         std::filesystem::path patchDir = Common::FS::GetUserPath(Common::FS::PathType::PatchesDir);
@@ -483,6 +501,35 @@ void PatchMemory(std::string modNameStr, std::string offsetStr, std::string valu
     }
 
     std::memcpy(cheatAddress, bytePatch.data(), bytePatch.size());
+
+    std::vector<std::string> MedResPatches = {"Resolution Patch (2560x1440)",
+                                              "Resolution Patch (2560x1080) (21:9 2.37)"};
+    std::vector<std::string> HighResPatches = {
+        "Resolution Patch (3840x2160)", "Resolution Patch (3200x1800)",
+        "Resolution Patch (3440x1440) (21:9 2.38)", "Resolution Patch (3840x1080) (32:9 ~3.55)"};
+
+    for (std::string patchName : MedResPatches) {
+        if (modNameStr == patchName) {
+            Config::setMemoryAlloc("high");
+            if (!resPatchdetected)
+                LOG_INFO(
+                    Loader,
+                    "Detected medium-res patch: {}, Automatically set memory allocation to high",
+                    modNameStr);
+            resPatchdetected = true;
+        }
+    }
+
+    for (std::string patchName : HighResPatches) {
+        if (modNameStr == patchName) {
+            Config::setMemoryAlloc("max");
+            if (!resPatchdetected)
+                LOG_INFO(Loader,
+                         "Detected high-res patch: {}, Automatically set memory allocation to max",
+                         modNameStr);
+            resPatchdetected = true;
+        }
+    }
 
     LOG_INFO(Loader, "Applied patch: {}, Offset: {}, Value: {}", modNameStr,
              (uintptr_t)cheatAddress, valueStr);

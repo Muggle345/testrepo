@@ -26,7 +26,21 @@ if (NOT TARGET fmt::fmt)
     add_subdirectory(fmt)
 endif()
 
-# FFmpeg
+# CryptoPP
+if (NOT TARGET cryptopp::cryptopp)
+    set(CRYPTOPP_INSTALL OFF)
+    set(CRYPTOPP_BUILD_TESTING OFF)
+    set(CRYPTOPP_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/cryptopp)
+    # cryptopp instruction set checks do not account for added compile options,
+    # so disable extensions in the library config to match our chosen target CPU.
+    set(CRYPTOPP_DISABLE_AESNI ON)
+    set(CRYPTOPP_DISABLE_AVX2 ON)
+    add_subdirectory(cryptopp-cmake)
+    file(COPY cryptopp DESTINATION cryptopp FILES_MATCHING PATTERN "*.h")
+    # remove externals/cryptopp from include directories because it contains a conflicting zlib.h file
+    set_target_properties(cryptopp PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_BINARY_DIR}/cryptopp")
+endif()
+
 if (NOT TARGET FFmpeg::ffmpeg)
     add_subdirectory(ffmpeg-core)
     add_library(FFmpeg::ffmpeg ALIAS ffmpeg)
@@ -214,6 +228,16 @@ if (NOT TARGET stb::headers)
     add_library(stb INTERFACE)
     target_include_directories(stb INTERFACE stb)
     add_library(stb::headers ALIAS stb)
+endif()
+
+# cubeb
+if (NOT TARGET cubeb::cubeb)
+    option(BUILD_TESTS "" OFF)
+    option(BUILD_TOOLS "" OFF)
+    option(BUNDLE_SPEEX "" ON)
+    option(USE_SANITIZERS "" OFF)
+    add_subdirectory(cubeb)
+    add_library(cubeb::cubeb ALIAS cubeb)
 endif()
 
 # Apple-only dependencies

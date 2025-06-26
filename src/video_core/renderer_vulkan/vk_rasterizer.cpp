@@ -549,7 +549,7 @@ void Rasterizer::BindBuffers(const Shader::Info& stage, Shader::Backend::Binding
                 const auto* gds_buf = buffer_cache.GetGdsBuffer();
                 buffer_infos.emplace_back(gds_buf->Handle(), 0, gds_buf->SizeBytes());
             } else if (desc.buffer_type == Shader::BufferType::Flatbuf) {
-                auto& vk_buffer = buffer_cache.GetStreamBuffer();
+                auto& vk_buffer = buffer_cache.GetUtilityBuffer(VideoCore::MemoryUsage::Stream);
                 const u32 ubo_size = stage.flattened_ud_buf.size() * sizeof(u32);
                 const u64 offset = vk_buffer.Copy(stage.flattened_ud_buf.data(), ubo_size,
                                                   instance.UniformMinAlignment());
@@ -561,7 +561,7 @@ void Rasterizer::BindBuffers(const Shader::Info& stage, Shader::Backend::Binding
                 const auto* fault_buffer = buffer_cache.GetFaultBuffer();
                 buffer_infos.emplace_back(fault_buffer->Handle(), 0, fault_buffer->SizeBytes());
             } else if (desc.buffer_type == Shader::BufferType::SharedMemory) {
-                auto& lds_buffer = buffer_cache.GetStreamBuffer();
+                auto& lds_buffer = buffer_cache.GetUtilityBuffer(VideoCore::MemoryUsage::Stream);
                 const auto& cs_program = liverpool->GetCsRegs();
                 const auto lds_size = cs_program.SharedMemSize() * cs_program.NumWorkgroups();
                 const auto [data, offset] =
@@ -614,7 +614,7 @@ void Rasterizer::BindTextures(const Shader::Info& stage, Shader::Backend::Bindin
     for (const auto& image_desc : stage.images) {
         const auto tsharp = image_desc.GetSharp(stage);
         if (texture_cache.IsMeta(tsharp.Address())) {
-            LOG_WARNING(Render_Vulkan, "Unexpected metadata read by a shader (texture)");
+            LOG_TRACE(Render_Vulkan, "Unexpected metadata read by a shader (texture)");
         }
 
         if (tsharp.GetDataFmt() == AmdGpu::DataFormat::FormatInvalid) {
@@ -947,11 +947,24 @@ void Rasterizer::InlineData(VAddr address, const void* value, u32 num_bytes, boo
     buffer_cache.InlineData(address, value, num_bytes, is_gds);
 }
 
+void Rasterizer::CopyBuffer(VAddr dst, VAddr src, u32 num_bytes, bool dst_gds, bool src_gds) {
+    buffer_cache.CopyBuffer(dst, src, num_bytes, dst_gds, src_gds);
+}
+
 u32 Rasterizer::ReadDataFromGds(u32 gds_offset) {
     auto* gds_buf = buffer_cache.GetGdsBuffer();
     u32 value;
     std::memcpy(&value, gds_buf->mapped_data.data() + gds_offset, sizeof(u32));
     return value;
+}
+
+bool Rasterizer::ReadMemory(VAddr addr, u64 size) {
+    if (!IsMapped(addr, size)) {
+        // Not GPU mapped memory, can skip invalidation logic entirely.
+        return false;
+    }
+    buffer_cache.ReadMemory(addr, size);
+    return true;
 }
 
 bool Rasterizer::InvalidateMemory(VAddr addr, u64 size) {

@@ -25,11 +25,12 @@ public:
     Emulator();
     ~Emulator();
 
-    void Run(const std::filesystem::path& file, const std::vector<std::string> args = {});
+    void Run(std::filesystem::path file, const std::vector<std::string> args = {});
     void UpdatePlayTime(const std::string& serial);
 
 private:
     void LoadSystemModules(const std::string& game_serial);
+    static void StartAutosave(std::string game_serial);
 
     Core::MemoryManager* memory;
     Input::GameController* controller;

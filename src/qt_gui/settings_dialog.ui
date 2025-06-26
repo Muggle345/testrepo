@@ -59,7 +59,7 @@
       </size>
      </property>
      <property name="currentIndex">
-      <number>5</number>
+      <number>7</number>
      </property>
      <widget class="QScrollArea" name="generalTab">
       <property name="widgetResizable">
@@ -114,7 +114,7 @@
               <property name="checkable">
                <bool>false</bool>
               </property>
-              <layout class="QVBoxLayout" name="additionalSettingsVLayout" stretch="0">
+              <layout class="QVBoxLayout" name="additionalSettingsVLayout" stretch="0,0,0,0,0">
                <property name="spacing">
                 <number>6</number>
                </property>
@@ -149,7 +149,87 @@
                    </property>
                   </widget>
                  </item>
+                 <item>
+                  <widget class="QCheckBox" name="separateUpdatesCheckBox">
+                   <property name="text">
+                    <string>Separate Update Folder</string>
+                   </property>
+                  </widget>
+                 </item>
                 </layout>
+               </item>
+               <item>
+                <widget class="QGroupBox" name="audioBackendGroupBox">
+                 <property name="title">
+                  <string>Audio Backend</string>
+                 </property>
+                 <layout class="QVBoxLayout" name="verticalLayout_3">
+                  <item>
+                   <widget class="QComboBox" name="audioBackendComboBox">
+                    <property name="currentIndex">
+                     <number>0</number>
+                    </property>
+                    <item>
+                     <property name="text">
+                      <string>sdl</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>cubeb</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_6">
+                 <item>
+                  <widget class="QLabel" name="VolumeLabel">
+                   <property name="text">
+                    <string>Volume:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="VolumeValue">
+                   <property name="text">
+                    <string>100</string>
+                   </property>
+                   <property name="alignment">
+                    <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <widget class="QSlider" name="VolumeSlider">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="maximum">
+                  <number>100</number>
+                 </property>
+                 <property name="value">
+                  <number>100</number>
+                 </property>
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Horizontal</enum>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="label">
+                 <property name="text">
+                  <string>*restart game to take effect</string>
+                 </property>
+                </widget>
                </item>
               </layout>
              </widget>
@@ -167,7 +247,7 @@
             <item>
              <widget class="QGroupBox" name="SystemSettings">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
@@ -1614,36 +1694,6 @@
                 <number>11</number>
                </property>
                <item>
-                <widget class="QGroupBox" name="backButtonBehaviorGroupBox">
-                 <property name="enabled">
-                  <bool>true</bool>
-                 </property>
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                 <property name="title">
-                  <string>Back Button Behavior</string>
-                 </property>
-                 <layout class="QVBoxLayout" name="BackButtonLayout">
-                  <property name="leftMargin">
-                   <number>11</number>
-                  </property>
-                  <item>
-                   <widget class="QComboBox" name="backButtonBehaviorComboBox"/>
-                  </item>
-                 </layout>
-                </widget>
-               </item>
-               <item>
                 <widget class="QCheckBox" name="motionControlsCheckBox">
                  <property name="text">
                   <string>Enable Motion Controls</string>
@@ -2074,6 +2124,353 @@
             </layout>
            </item>
           </layout>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="tab">
+      <attribute name="title">
+       <string>BB Build Options</string>
+      </attribute>
+      <widget class="QGroupBox" name="BackupGroupBox">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>170</y>
+         <width>571</width>
+         <height>111</height>
+        </rect>
+       </property>
+       <property name="title">
+        <string>Backup Save Options</string>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_10">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_12">
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout_11">
+            <item>
+             <widget class="QCheckBox" name="BackupCheckBox">
+              <property name="text">
+               <string>Generate backup saves while playing</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="BackupFolderButton">
+              <property name="text">
+               <string>Open Backups Folder</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout_7">
+            <item>
+             <widget class="QLabel" name="intervalLabel">
+              <property name="text">
+               <string>Frequency (mins)</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignmentFlag::AlignCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="BackupIntervalComboBox">
+              <item>
+               <property name="text">
+                <string>2</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>5</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>10</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout_6">
+            <item>
+             <widget class="QLabel" name="backupNumberLabl">
+              <property name="text">
+               <string># of backups</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignmentFlag::AlignCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="BackupNumComboBox">
+              <item>
+               <property name="text">
+                <string>1</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>2</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>3</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>4</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>5</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QGroupBox" name="MemoryAllocGroupBox">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>290</y>
+         <width>571</width>
+         <height>101</height>
+        </rect>
+       </property>
+       <property name="title">
+        <string>Memory Allocation (needed for custom patches only)</string>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_5">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_7">
+          <item>
+           <widget class="QComboBox" name="MemoryComboBox">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="currentText">
+             <string>medium</string>
+            </property>
+            <item>
+             <property name="text">
+              <string>medium</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>high</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>max</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_4">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Recommended: [Medium - 1080p]       [High - 1440p] [Max - 4K]</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="verticalLayoutWidget_4">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>400</y>
+         <width>570</width>
+         <height>126</height>
+        </rect>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_9">
+        <item>
+         <widget class="QGroupBox" name="FSRGroupBox">
+          <property name="title">
+           <string>FSR Settings</string>
+          </property>
+          <layout class="QHBoxLayout" name="horizontalLayout_10">
+           <item>
+            <widget class="QCheckBox" name="FSRCheckBox">
+             <property name="text">
+              <string>Enable FSR</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="RCASCheckBox">
+             <property name="text">
+              <string>Enable RCAS</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QVBoxLayout" name="verticalLayout_8">
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_11">
+               <item>
+                <widget class="QLabel" name="label_6">
+                 <property name="text">
+                  <string>RCAS Attenuation</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="RCASValue">
+                 <property name="text">
+                  <string>0.250</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <widget class="QSlider" name="RCASSlider">
+               <property name="maximum">
+                <number>1000</number>
+               </property>
+               <property name="value">
+                <number>250</number>
+               </property>
+               <property name="orientation">
+                <enum>Qt::Orientation::Horizontal</enum>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="FSRLabel">
+          <property name="font">
+           <font>
+            <pointsize>11</pointsize>
+            <bold>true</bold>
+           </font>
+          </property>
+          <property name="text">
+           <string>FSR Settings unavailable, generate FSR settings file first (press ctrl+F10 in-game)</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="verticalSpacer_8">
+          <property name="orientation">
+           <enum>Qt::Orientation::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QGroupBox" name="groupBox">
+       <property name="geometry">
+        <rect>
+         <x>10</x>
+         <y>10</y>
+         <width>921</width>
+         <height>157</height>
+        </rect>
+       </property>
+       <property name="title">
+        <string>Bloodborne Hacks</string>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_12">
+        <item>
+         <widget class="QCheckBox" name="ReadbacksCheckBox">
+          <property name="font">
+           <font>
+            <pointsize>11</pointsize>
+            <bold>true</bold>
+           </font>
+          </property>
+          <property name="text">
+           <string>Enable Readbacks (eliminates vertex Explosions w/o mods)</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_2">
+          <property name="font">
+           <font>
+            <pointsize>11</pointsize>
+            <bold>false</bold>
+           </font>
+          </property>
+          <property name="text">
+           <string>NOTE: may cause stutters on most systems</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="ParticlesCheckBox">
+          <property name="font">
+           <font>
+            <pointsize>11</pointsize>
+            <bold>true</bold>
+           </font>
+          </property>
+          <property name="text">
+           <string>Enable DMA data particles (renders certain particle effects like falling snow, black particles on warp)</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_3">
+          <property name="font">
+           <font>
+            <pointsize>11</pointsize>
+            <bold>false</bold>
+           </font>
+          </property>
+          <property name="text">
+           <string>NOTE: very rarely cause freezes for several seconds or rainbow lights explosions</string>
+          </property>
          </widget>
         </item>
        </layout>
