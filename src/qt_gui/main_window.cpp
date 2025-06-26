@@ -19,6 +19,7 @@
 #include "common/scm_rev.h"
 #include "common/string_util.h"
 #include "control_settings.h"
+#include "core/loader.h"
 #include "game_install_dialog.h"
 #include "kbm_gui.h"
 #include "main_window.h"
